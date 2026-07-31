@@ -110,8 +110,18 @@ def check_tracked_corpora() -> list[str]:
     except (subprocess.CalledProcessError, FileNotFoundError):
         return ["could not run `git ls-files`; corpus check skipped"]
 
+    # The scaffolding that tells people how to build a corpus is not a corpus.
+    # Listed explicitly rather than matched by extension, so that adding a
+    # `.md` under `eval/corpora/` is a decision someone makes here.
+    ALLOWED = {
+        "eval/corpora/README.md",
+        "eval/corpora/chapterize.py",
+    }
+
     failures = []
     for path in tracked:
+        if path in ALLOWED:
+            continue
         lowered = path.lower()
         if lowered.startswith("eval/corpora/") or lowered.startswith("corpus/"):
             failures.append(f"{path}: corpus content must not be tracked")
