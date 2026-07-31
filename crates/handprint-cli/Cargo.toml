@@ -1,0 +1,29 @@
+[package]
+name = "handprint-cli"
+description = "Command-line interface for handprint: interpretable stylometry and the agent-critic loop"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "handprint"
+path = "src/main.rs"
+
+[dependencies]
+handprint-core = { workspace = true }
+handprint-data = { workspace = true }
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+toml = "0.8"
+
+[features]
+default = []
+# Network-backed corpus fetching (Hacker News).
+net = ["handprint-data/net"]
+# ANSI / HTML renderers from the core crate.
+render = ["handprint-core/render"]

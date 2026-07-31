@@ -1,0 +1,21 @@
+[package]
+name = "handprint-data"
+description = "Corpus extractors for handprint: agent transcripts, Hacker News, public datasets"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+handprint-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+ureq = { version = "2", optional = true }
+
+[features]
+default = []
+# Network-backed extractors (Hacker News via the Algolia API).
+net = ["dep:ureq"]

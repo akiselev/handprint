@@ -1,0 +1,31 @@
+[workspace]
+resolver = "2"
+members = ["crates/handprint-core", "crates/handprint-cli", "crates/handprint-data"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.82"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/akiselev/handprint"
+authors = ["Alexander Kiselev"]
+
+[workspace.dependencies]
+handprint-core = { path = "crates/handprint-core", version = "0.1.0" }
+handprint-data = { path = "crates/handprint-data", version = "0.1.0" }
+serde = { version = "1", features = ["derive"] }
+# `float_roundtrip` makes f64 parsing bit-exact. Model artifacts and
+# calibration distributions are serialized as JSON, and a 1-ULP shift on
+# reload would make a shipped reference disagree with the one that was fitted.
+serde_json = { version = "1", features = ["float_roundtrip"] }
+thiserror = "2"
+unicode-segmentation = "1"
+unicode-normalization = "0.1"
+rand = { version = "0.8", default-features = false, features = ["std", "std_rng", "small_rng"] }
+rand_chacha = "0.3"
+clap = { version = "4", features = ["derive"] }
+anyhow = "1"
+rayon = "1"
+
+[profile.release]
+lto = "thin"

@@ -1,0 +1,38 @@
+[package]
+name = "handprint-core"
+description = "Interpretable stylometry: profile, compare, and explain writing style"
+keywords = ["stylometry", "authorship", "nlp", "text-analysis"]
+categories = ["text-processing"]
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+unicode-segmentation = { workspace = true }
+unicode-normalization = { workspace = true }
+rand = { workspace = true }
+rand_chacha = { workspace = true }
+rayon = { workspace = true, optional = true }
+
+[dev-dependencies]
+criterion = { version = "0.5", default-features = false, features = ["cargo_bench_support"] }
+
+[[bench]]
+name = "vector"
+harness = false
+
+[features]
+default = []
+# Parallel corpus fitting.
+parallel = ["dep:rayon"]
+# ANSI / HTML renderers for explanations.
+render = []
+
+[lints.rust]
+missing_docs = "warn"
