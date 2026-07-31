@@ -18,6 +18,27 @@
 //!
 //! The fitted model is counts only: a `HashMap` of n-gram and context
 //! frequencies, serializable with the rest of the reference (invariant #2).
+//!
+//! # Punchlines
+//!
+//! With [`SurprisalLm::punchline`] on, the same fitted model also answers a
+//! question about *where inside a sentence* surprisal lands. Xie, Li & Pu (ACL
+//! 2021) characterize a joke as high entropy through the setup followed by a
+//! surprisal spike at the punchline, and that is measurable with the machinery
+//! already here: split each sentence at its last clause boundary, take the mean
+//! word-bigram surprisal of each half, and report the ratio.
+//!
+//! The dimensions are emitted by [`FittedSurprisal`] but carry
+//! [`Family::Rhythm`], not [`Family::Surprisal`]. That is not tidiness, it is
+//! the only arrangement that works: the surprisal family is the critic loop's
+//! default canary, so a punch dimension inheriting it would either be silently
+//! unreportable or would contaminate the canary the moment it was reported.
+//! Critique's skip and trip logic keys off each dimension's own family, so one
+//! fitted feature can span two.
+//!
+//! Caveat from the literature, worth keeping in view: LM surprisal detects
+//! *lexical* twists, not syntactic garden paths (Huang et al. 2024). A joke
+//! whose turn is structural rather than lexical will not show up here.
 
 use std::collections::HashMap;
 
@@ -50,6 +71,17 @@ pub struct SurprisalLm {
     /// Fewest characters the corpus must supply before a fit is meaningful.
     #[serde(default = "default_min_chars")]
     pub min_corpus_chars: usize,
+    /// Emit the punchline dimensions: where inside a sentence surprisal spikes.
+    ///
+    /// Requires [`SurprisalLm::word_bigrams`], because the signal is lexical.
+    /// Xie, Li & Pu (ACL 2021) characterize a joke as high entropy through the
+    /// setup and a surprisal spike at the punchline, and the word-bigram model
+    /// is what makes "spike" mean a *word* choice rather than a spelling.
+    ///
+    /// Off by default and `#[serde(default)]`, so a reference serialized before
+    /// this existed loads and profiles exactly as it did.
+    #[serde(default)]
+    pub punchline: bool,
 }
 
 fn default_order() -> usize {
@@ -70,6 +102,7 @@ impl Default for SurprisalLm {
             word_bigrams: false,
             min_count: 0,
             min_corpus_chars: default_min_chars(),
+            punchline: false,
         }
     }
 }
@@ -171,6 +204,41 @@ pub struct FittedSurprisal {
     word_low_threshold: f64,
     char_dims: Vec<Symbol>,
     word_dims: Vec<Symbol>,
+    /// `[ratio_mean, spike_rate, setup_entropy_mean]`, present only when the
+    /// spec asked for them. Serde-defaulted so older artifacts load unchanged.
+    #[serde(default)]
+    punch_dims: Vec<Symbol>,
+}
+
+/// Clause-boundary punctuation that can separate a setup from a punchline.
+const CLAUSE_BOUNDARIES: &[&str] = &[",", ";", ":", "\u{2014}", "\u{2013}", "--"];
+
+/// Fewest lexical tokens a sentence's body must hold before its final clause
+/// counts as a punchline rather than as the tail of a short list.
+const MIN_BODY_TOKENS: usize = 4;
+
+/// A final clause counts as a spike when its mean surprisal is at least this
+/// multiple of its body's.
+///
+/// 1.5 is a constant, chosen rather than fitted, and that is deliberate: fitting
+/// it would make `punch_spike_rate` self-normalizing, so a corpus with no
+/// spiking at all would still report a spike rate near its own median. The
+/// dimension has to be able to say "this author does not do this".
+const SPIKE_RATIO: f64 = 1.5;
+
+/// Fewest clause-split sentences before the punch dimensions mean anything.
+const MIN_PUNCH_SENTENCES: usize = 4;
+
+/// One sentence split into setup and punchline.
+#[derive(Debug, Clone, Copy)]
+struct PunchSplit {
+    /// Index range of the body's lexical tokens, in the document's lexical
+    /// sequence.
+    body: (usize, usize),
+    /// Index range of the final clause's lexical tokens.
+    tail: (usize, usize),
+    /// Source span of the final clause.
+    span: Span,
 }
 
 impl FittedSurprisal {
@@ -237,6 +305,14 @@ impl Feature for SurprisalLm {
                 detail: "must be positive; add-0 smoothing gives infinite surprisal".into(),
             });
         }
+        if self.punchline && !self.word_bigrams {
+            return Err(Error::InvalidConfig {
+                what: "SurprisalLm::punchline",
+                detail: "punchline dimensions need word_bigrams: true — a punchline is a word \
+                         choice, and the character model cannot see one"
+                    .into(),
+            });
+        }
 
         let total_chars: usize = ctx
             .analyses()
@@ -290,6 +366,31 @@ impl Feature for SurprisalLm {
             Vec::new()
         };
 
+        // The punch dimensions are emitted by this fitted feature but belong to
+        // `Family::Rhythm`, not `Family::Surprisal`. Critique skip/trip logic
+        // keys off each `DimInfo`'s own family, so mixing families inside one
+        // fitted feature works — and it is the only way these can be reported
+        // at all while the surprisal family stays the canary.
+        let punch_dims = if self.punchline {
+            let mut push_rhythm =
+                |interner: &mut Interner, name: &str, unit: Unit, rollup: bool| {
+                    let sym = interner.intern(name);
+                    let info = DimInfo::new(sym, Family::Rhythm, unit);
+                    dims.push(if rollup { info.rollup() } else { info });
+                    sym
+                };
+            vec![
+                push_rhythm(interner, "surp:punch_ratio_mean", Unit::Index, false),
+                push_rhythm(interner, "surp:punch_spike_rate", Unit::Fraction, false),
+                // Informational: it feeds interpretability checks and the
+                // distance, but "raise your setup entropy by 8%" is not an
+                // instruction anyone can act on.
+                push_rhythm(interner, "surp:setup_entropy_mean", Unit::Bits, true),
+            ]
+        } else {
+            Vec::new()
+        };
+
         Ok(FittedSurprisal {
             dims,
             chars,
@@ -298,6 +399,7 @@ impl Feature for SurprisalLm {
             word_low_threshold,
             char_dims,
             word_dims,
+            punch_dims,
         })
     }
 }
@@ -481,8 +583,143 @@ impl FittedFeature for FittedSurprisal {
                     }
                 }
             }
+            if !self.punch_dims.is_empty() {
+                self.punch_stats(analysis, &series, out);
+            }
+        } else if !self.punch_dims.is_empty() {
+            // Unreachable through `fit`, which rejects the combination. Reached
+            // only by hand-editing an artifact, and a hand-edited artifact must
+            // not produce a plausible-looking zero.
+            for &sym in &self.punch_dims {
+                out.mark_missing(sym);
+            }
         }
     }
+}
+
+impl FittedSurprisal {
+    /// Per-lexical-token word-bigram surprisal, with source spans.
+    ///
+    /// The lexical counterpart of [`FittedSurprisal::word_surprisal`], which
+    /// averages the *character* model over a token. This one asks the question
+    /// a punchline poses: given the previous word, how unexpected is this one?
+    pub fn word_bigram_surprisal(&self, analysis: &Analysis<'_>) -> Vec<(Span, f64)> {
+        let Some(model) = &self.words else {
+            return Vec::new();
+        };
+        let series = word_series(model, analysis);
+        analysis
+            .tokens()
+            .lexical()
+            .zip(series)
+            .map(|((token, _), s)| (token.span, s))
+            .collect()
+    }
+
+    /// Write `surp:punch_*` from a per-lexical-token surprisal series.
+    fn punch_stats(&self, analysis: &Analysis<'_>, series: &[f64], out: &mut VectorBuilder) {
+        let splits = punch_splits(analysis);
+        let mean_of = |(lo, hi): (usize, usize)| -> Option<f64> {
+            let slice = series.get(lo..hi)?;
+            (!slice.is_empty()).then(|| util::mean(slice))
+        };
+
+        let mut ratios: Vec<f64> = Vec::new();
+        let mut setups: Vec<f64> = Vec::new();
+        let mut spikes = 0usize;
+        for split in &splits {
+            let (Some(body), Some(tail)) = (mean_of(split.body), mean_of(split.tail)) else {
+                continue;
+            };
+            if body <= f64::EPSILON {
+                continue;
+            }
+            let ratio = tail / body;
+            ratios.push(ratio);
+            setups.push(body);
+            if ratio > SPIKE_RATIO {
+                spikes += 1;
+                out.note_span(self.punch_dims[1], split.span);
+            }
+        }
+
+        if ratios.len() < MIN_PUNCH_SENTENCES {
+            // Denominated by *clause-split* sentences, not by all of them: a
+            // document with three commas has no punch profile, and imputing one
+            // from three data points would be worse than admitting it.
+            for &sym in &self.punch_dims {
+                out.mark_missing(sym);
+            }
+            return;
+        }
+        out.set(self.punch_dims[0], util::mean(&ratios));
+        out.set(self.punch_dims[1], spikes as f64 / ratios.len() as f64);
+        out.set(self.punch_dims[2], util::mean(&setups));
+    }
+}
+
+/// Split every sentence into a setup body and a final clause.
+///
+/// The final clause starts after the *last* mid-sentence clause boundary, which
+/// is where a punchline lands in English: "It was a good plan, right up until
+/// the bit where it wasn't." Sentences with no boundary, or with a body shorter
+/// than [`MIN_BODY_TOKENS`], produce no split — they have no setup to spike
+/// against, and counting them would dilute the rate with sentences that could
+/// never have shown the effect.
+fn punch_splits(analysis: &Analysis<'_>) -> Vec<PunchSplit> {
+    let stream = analysis.tokens();
+    let tokens = stream.tokens();
+    // Map each token index to its position in the lexical-only sequence, which
+    // is the sequence the surprisal series is indexed by.
+    let mut lexical_index = vec![usize::MAX; tokens.len()];
+    let mut lexical_count = 0usize;
+    for (i, token) in tokens.iter().enumerate() {
+        if token.kind.is_lexical() {
+            lexical_index[i] = lexical_count;
+            lexical_count += 1;
+        }
+    }
+
+    let mut out = Vec::new();
+    for sentence in &analysis.structure().sentences {
+        let range = sentence.tokens.clone();
+        let lexical: Vec<usize> = range
+            .clone()
+            .filter(|&i| tokens[i].kind.is_lexical())
+            .collect();
+        if lexical.len() < MIN_BODY_TOKENS + 1 {
+            continue;
+        }
+        // The last clause boundary that still leaves a body of at least
+        // MIN_BODY_TOKENS and a non-empty tail.
+        let boundary = range.clone().rev().find(|&i| {
+            let form = stream.form(&tokens[i]);
+            if !CLAUSE_BOUNDARIES.contains(&form) {
+                return false;
+            }
+            let before = lexical.iter().filter(|&&j| j < i).count();
+            let after = lexical.iter().filter(|&&j| j > i).count();
+            before >= MIN_BODY_TOKENS && after > 0
+        });
+        let Some(boundary) = boundary else { continue };
+
+        let body: Vec<usize> = lexical.iter().copied().filter(|&j| j < boundary).collect();
+        let tail: Vec<usize> = lexical.iter().copied().filter(|&j| j > boundary).collect();
+        let (Some(&body_first), Some(&body_last)) = (body.first(), body.last()) else {
+            continue;
+        };
+        let (Some(&tail_first), Some(&tail_last)) = (tail.first(), tail.last()) else {
+            continue;
+        };
+        out.push(PunchSplit {
+            body: (lexical_index[body_first], lexical_index[body_last] + 1),
+            tail: (lexical_index[tail_first], lexical_index[tail_last] + 1),
+            // The span starts at the boundary punctuation so a finding points
+            // at the whole punchline, comma included.
+            span: Span::new(tokens[boundary].span.start, sentence.span.end),
+        });
+    }
+    out
 }
 
 fn write_stats(dims: &[Symbol], stats: &SurprisalStats, out: &mut VectorBuilder) {
@@ -623,6 +860,217 @@ mod tests {
             .max_by(|x, y| x.1.partial_cmp(&y.1).unwrap())
             .unwrap();
         assert_eq!(&text[odd.0.range()], "zzzqqq");
+    }
+
+    /// A corpus of ordinary declaratives, long enough to fit a word model
+    /// whose vocabulary covers the fixtures below.
+    fn punch_corpus() -> Vec<String> {
+        let base = "the team shipped the change on friday, and the build stayed green all \
+                    weekend. we looked at the logs again, and the numbers matched the sheet \
+                    exactly. the cache was stale, so the worker read the old value twice. \
+                    nobody noticed the problem, because the dashboard showed the mean. ";
+        vec![base.repeat(40)]
+    }
+
+    fn punch_spec() -> SurprisalLm {
+        SurprisalLm {
+            word_bigrams: true,
+            punchline: true,
+            min_corpus_chars: 1_000,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn punch_dims_need_the_word_model_and_say_so() {
+        let corpus = Corpus::new();
+        let ctx = FitContext::new(&corpus, &[]);
+        let mut interner = Interner::new();
+        let err = SurprisalLm {
+            punchline: true,
+            word_bigrams: false,
+            ..Default::default()
+        }
+        .fit(&ctx, &mut interner)
+        .unwrap_err();
+        assert!(
+            matches!(&err, Error::InvalidConfig { what, .. } if *what == "SurprisalLm::punchline"),
+            "{err}"
+        );
+    }
+
+    #[test]
+    fn punch_dims_carry_the_rhythm_family_not_the_surprisal_family() {
+        // The whole point of the split: these must be reportable while the
+        // surprisal family stays the canary.
+        let (fitted, interner) = fit_on(&punch_corpus(), punch_spec());
+        for name in [
+            "surp:punch_ratio_mean",
+            "surp:punch_spike_rate",
+            "surp:setup_entropy_mean",
+        ] {
+            let sym = interner
+                .get(name)
+                .unwrap_or_else(|| panic!("no dim {name}"));
+            let dim = fitted.dims().iter().find(|d| d.symbol == sym).unwrap();
+            assert_eq!(dim.family, Family::Rhythm, "{name}");
+        }
+        // And the ordinary surprisal statistics keep theirs.
+        let sym = interner.get("surp:char_mean").unwrap();
+        let dim = fitted.dims().iter().find(|d| d.symbol == sym).unwrap();
+        assert_eq!(dim.family, Family::Surprisal);
+        // The feature still declares one family for the pipeline's purposes.
+        assert_eq!(fitted.family(), Family::Surprisal);
+    }
+
+    #[test]
+    fn setup_entropy_is_informational_and_the_ratio_is_actionable() {
+        let (fitted, interner) = fit_on(&punch_corpus(), punch_spec());
+        let aggregate = |name: &str| {
+            let sym = interner.get(name).unwrap();
+            fitted
+                .dims()
+                .iter()
+                .find(|d| d.symbol == sym)
+                .unwrap()
+                .aggregate
+        };
+        assert!(aggregate("surp:setup_entropy_mean"));
+        assert!(!aggregate("surp:punch_ratio_mean"));
+        assert!(!aggregate("surp:punch_spike_rate"));
+    }
+
+    /// Six sentences whose setup is corpus-ordinary and whose final clause is a
+    /// single word the corpus has never seen: the windup-then-spike shape.
+    const SPIKED: &str = "the team shipped the change on friday, zzqqxx. we looked at the \
+        logs again, wkkvvj. the cache was stale, qqzzpl. nobody noticed the problem, vvxxkk. \
+        the team shipped the change on friday, jjqqzz. we looked at the logs again, ppwwvv.";
+
+    /// The same six setups with the corpus's own final clauses. Only the tail
+    /// differs between the two fixtures, so the ratio is the only thing being
+    /// measured.
+    const FLAT: &str = "the team shipped the change on friday, and the build stayed green \
+        all weekend. we looked at the logs again, and the numbers matched the sheet exactly. \
+        the cache was stale, so the worker read the old value twice. nobody noticed the \
+        problem, because the dashboard showed the mean. the team shipped the change on \
+        friday, and the build stayed green all weekend. we looked at the logs again, and the \
+        numbers matched the sheet exactly.";
+
+    #[test]
+    fn a_planted_final_clause_raises_the_punch_ratio() {
+        let (fitted, interner) = fit_on(&punch_corpus(), punch_spec());
+        let spiked = value(&fitted, &interner, SPIKED, "surp:punch_ratio_mean");
+        let flat = value(&fitted, &interner, FLAT, "surp:punch_ratio_mean");
+        assert!(
+            spiked > flat,
+            "windup-spike fixture {spiked} should exceed flat control {flat}"
+        );
+        // Every one of the six planted sentences spikes; none of the flat ones
+        // does. Hand-counted, not eyeballed.
+        assert_eq!(
+            value(&fitted, &interner, SPIKED, "surp:punch_spike_rate"),
+            1.0
+        );
+        assert_eq!(
+            value(&fitted, &interner, FLAT, "surp:punch_spike_rate"),
+            0.0
+        );
+    }
+
+    #[test]
+    fn spike_spans_land_on_the_final_clause() {
+        let (fitted, interner) = fit_on(&punch_corpus(), punch_spec());
+        let doc = Document::new(SPIKED);
+        let a = doc.analyze(&Tokenizer::default());
+        let mut b = VectorBuilder::new().track_spans(true);
+        fitted.transform(&a, &mut b);
+        let v = b.build();
+        let spans = v.spans(interner.get("surp:punch_spike_rate").unwrap());
+        assert_eq!(spans.len(), 6, "one span per spiking sentence");
+        for span in spans {
+            let text = &SPIKED[span.range()];
+            assert!(
+                text.starts_with(','),
+                "span must open at the boundary: {text:?}"
+            );
+            assert!(
+                text.ends_with('.'),
+                "span must close the sentence: {text:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_document_with_no_clause_splits_marks_the_punch_dims_missing() {
+        // Three commas is not a punch profile. Imputing one would be worse than
+        // saying so.
+        let (fitted, interner) = fit_on(&punch_corpus(), punch_spec());
+        let doc = Document::new("the team shipped it. we looked again. the cache was stale.");
+        let a = doc.analyze(&Tokenizer::default());
+        let mut b = VectorBuilder::new();
+        fitted.transform(&a, &mut b);
+        let v = b.build();
+        assert!(v.is_missing(interner.get("surp:punch_ratio_mean").unwrap()));
+        assert!(v.is_missing(interner.get("surp:punch_spike_rate").unwrap()));
+    }
+
+    #[test]
+    fn a_short_body_is_not_a_setup() {
+        // "yes, but the build produced zzqqxx" has a two-token body: there is
+        // nothing to have been surprised away from.
+        let doc = Document::new("Yes, but the build produced zzqqxx and nobody noticed it.");
+        let a = doc.analyze(&Tokenizer::default());
+        assert!(punch_splits(&a).is_empty());
+    }
+
+    #[test]
+    fn splits_take_the_last_boundary_not_the_first() {
+        let text = "the team shipped the change on friday, which nobody expected, and the \
+                    build produced zzqqxx.";
+        let doc = Document::new(text);
+        let a = doc.analyze(&Tokenizer::default());
+        let splits = punch_splits(&a);
+        assert_eq!(splits.len(), 1);
+        assert_eq!(
+            &text[splits[0].span.range()],
+            ", and the build produced zzqqxx."
+        );
+    }
+
+    #[test]
+    fn a_reference_without_the_flag_deserializes_and_profiles_identically() {
+        // Structural assertion, not a golden file: an artifact serialized
+        // before `punchline` existed has no such key, and must load with the
+        // punch dimensions simply absent.
+        let (fitted, interner) = fit_on(&corpus_text(), SurprisalLm::default());
+        let json = serde_json::to_string(&fitted).unwrap();
+        assert!(!json.contains("punch_dims") || json.contains("\"punch_dims\":[]"));
+        let stripped = json.replace(",\"punch_dims\":[]", "");
+        let back: FittedSurprisal = serde_json::from_str(&stripped).unwrap();
+        assert_eq!(back.dims().len(), fitted.dims().len());
+        let text = "the quick brown fox jumps over the lazy dog again";
+        assert_eq!(
+            value(&fitted, &interner, text, "surp:char_mean"),
+            value(&back, &interner, text, "surp:char_mean")
+        );
+
+        let spec: SurprisalLm = serde_json::from_str("{}").unwrap();
+        assert!(!spec.punchline);
+    }
+
+    #[test]
+    fn word_bigram_surprisal_attributes_the_rare_word() {
+        let (fitted, _) = fit_on(&punch_corpus(), punch_spec());
+        let text = "the team shipped zzqqxx";
+        let doc = Document::new(text);
+        let a = doc.analyze(&Tokenizer::default());
+        let per_word = fitted.word_bigram_surprisal(&a);
+        assert_eq!(per_word.len(), 4);
+        let odd = per_word
+            .iter()
+            .max_by(|x, y| x.1.partial_cmp(&y.1).unwrap())
+            .unwrap();
+        assert_eq!(&text[odd.0.range()], "zzqqxx");
     }
 
     #[test]

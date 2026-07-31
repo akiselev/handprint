@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{per_1k, ratio, DimInfo, Family, Feature, FitContext, FittedFeature, Unit};
 use crate::error::Result;
-use crate::text::Analysis;
+use crate::text::{Analysis, Span};
 use crate::util;
 use crate::vector::{Interner, Symbol, VectorBuilder};
 
@@ -126,6 +126,20 @@ pub struct SentenceStats {
     /// Emit markdown-structure rates.
     #[serde(default = "crate::util::yes")]
     pub markdown: bool,
+    /// Emit the punch-rhythm and aside dimensions.
+    ///
+    /// The long-windup-then-short-punch contrast and the parenthetical
+    /// digression rate. Off by default and `#[serde(default)]`, so a reference
+    /// serialized before these existed loads and profiles unchanged.
+    #[serde(default)]
+    pub rhythm: bool,
+    /// Emit the extended markdown and discourse dimensions: link density,
+    /// footnote density, rhetorical-question rate.
+    ///
+    /// The apparatus contrast — a Luu post with almost no formatting against a
+    /// Gwern one dense with links and sidenotes — lives in these three.
+    #[serde(default)]
+    pub md_extended: bool,
     /// Fewest sentences at which dispersion statistics are meaningful. Below
     /// this the dispersion dimensions are marked missing rather than computed
     /// from two data points.
@@ -143,8 +157,24 @@ impl Default for SentenceStats {
             openers: true,
             markers: true,
             markdown: true,
+            rhythm: false,
+            md_extended: false,
             min_sentences: default_min_sentences(),
         }
+    }
+}
+
+impl SentenceStats {
+    /// Turn the punch-rhythm and aside dimensions on.
+    pub fn with_rhythm(mut self) -> Self {
+        self.rhythm = true;
+        self
+    }
+
+    /// Turn the extended markdown and discourse dimensions on.
+    pub fn with_md_extended(mut self) -> Self {
+        self.md_extended = true;
+        self
     }
 }
 
@@ -170,6 +200,13 @@ pub struct FittedSentence {
     markers: Vec<Symbol>,
     markdown: Vec<Symbol>,
     md_structured_share: Option<Symbol>,
+    /// `[punch_short_rate, final_clause_len_ratio, aside_rate, aside_len_mean,
+    /// aside_share]`, empty unless the spec asked for them.
+    #[serde(default)]
+    rhythm: Vec<Symbol>,
+    /// `[md:link_rate, md:footnote_rate, sent:rhetorical_question_rate]`.
+    #[serde(default)]
+    md_extended: Vec<Symbol>,
     min_sentences: usize,
 }
 
@@ -273,6 +310,31 @@ impl Feature for SentenceStats {
             (Vec::new(), None)
         };
 
+        let rhythm = if self.rhythm {
+            vec![
+                push(interner, "sent:punch_short_rate", Unit::PerHundredSentences),
+                push(interner, "sent:final_clause_len_ratio", Unit::Index),
+                push(interner, "sent:aside_rate", Unit::PerHundredSentences),
+                push(interner, "sent:aside_len_mean", Unit::Tokens),
+                push(interner, "sent:aside_share", Unit::Fraction),
+            ]
+        } else {
+            Vec::new()
+        };
+        let md_extended = if self.md_extended {
+            vec![
+                push(interner, "md:link_rate", Unit::PerThousandTokens),
+                push(interner, "md:footnote_rate", Unit::PerThousandTokens),
+                push(
+                    interner,
+                    "sent:rhetorical_question_rate",
+                    Unit::PerHundredSentences,
+                ),
+            ]
+        } else {
+            Vec::new()
+        };
+
         Ok(FittedSentence {
             dims,
             len_mean,
@@ -293,6 +355,8 @@ impl Feature for SentenceStats {
             markers,
             markdown,
             md_structured_share,
+            rhythm,
+            md_extended,
             min_sentences: self.min_sentences.max(2),
         })
     }
@@ -395,6 +459,8 @@ impl FittedFeature for FittedSentence {
         self.opener_rates(analysis, sentences, out);
         self.marker_rates(analysis, tokens, out);
         self.markdown_rates(analysis, tokens, out);
+        self.rhythm_rates(analysis, sentences, tokens, out);
+        self.md_extended_rates(analysis, sentences, tokens, out);
     }
 }
 
@@ -465,6 +531,286 @@ impl FittedSentence {
             out.set(sym, ratio(structured, md.lines));
         }
     }
+
+    /// Punch rhythm and parenthetical asides.
+    fn rhythm_rates(
+        &self,
+        analysis: &Analysis<'_>,
+        sentences: usize,
+        _tokens: usize,
+        out: &mut VectorBuilder,
+    ) {
+        if self.rhythm.is_empty() {
+            return;
+        }
+        let structure = analysis.structure();
+        let stream = analysis.tokens();
+        let lengths: Vec<usize> = structure
+            .sentences
+            .iter()
+            .map(|s| s.lexical_len(stream))
+            .collect();
+
+        // A short sentence immediately after a long one: the flat punch after
+        // the windup. Measured against a *rolling* mean rather than the
+        // document mean, so a document whose paragraphs differ in pace is not
+        // scored against an average that describes none of them.
+        let mut punches = 0usize;
+        if lengths.len() >= 3 {
+            for i in 1..lengths.len() {
+                let window_start = i.saturating_sub(WINDOW);
+                let window = &lengths[window_start..i];
+                let mean: f64 = window.iter().sum::<usize>() as f64 / window.len() as f64;
+                if mean <= 0.0 {
+                    continue;
+                }
+                let previous = lengths[i - 1] as f64;
+                let current = lengths[i] as f64;
+                if previous >= mean * LONG_FACTOR && current <= mean * SHORT_FACTOR {
+                    punches += 1;
+                    out.note_span(self.rhythm[0], structure.sentences[i].span);
+                }
+            }
+        }
+        out.set(self.rhythm[0], ratio(punches, sentences) * 100.0);
+
+        // Final-clause length as a share of sentence length: an author who
+        // saves the turn for the end has a short one.
+        let mut final_lengths: Vec<f64> = Vec::new();
+        let mut sentence_lengths: Vec<f64> = Vec::new();
+        for (sentence, &len) in structure.sentences.iter().zip(&lengths) {
+            if len == 0 {
+                continue;
+            }
+            let toks = &stream.tokens()[sentence.tokens.clone()];
+            let boundary = toks
+                .iter()
+                .rposition(|t| CLAUSE_MARKS.iter().any(|c| stream.form(t) == c.to_string()));
+            let Some(boundary) = boundary else { continue };
+            let after = toks[boundary + 1..]
+                .iter()
+                .filter(|t| t.kind.is_lexical())
+                .count();
+            if after == 0 {
+                continue;
+            }
+            final_lengths.push(after as f64);
+            sentence_lengths.push(len as f64);
+        }
+        if final_lengths.is_empty() {
+            out.mark_missing(self.rhythm[1]);
+        } else {
+            out.set(
+                self.rhythm[1],
+                util::mean(&final_lengths) / util::mean(&sentence_lengths).max(1.0),
+            );
+        }
+
+        // Asides: paired parentheses, paired em dashes, footnote markers.
+        let asides = aside_spans(analysis);
+        let aside_tokens: usize = asides
+            .iter()
+            .map(|span| {
+                stream
+                    .lexical()
+                    .filter(|(t, _)| t.span.start >= span.start && t.span.end <= span.end)
+                    .count()
+            })
+            .sum();
+        for span in &asides {
+            out.note_span(self.rhythm[2], *span);
+        }
+        out.set(self.rhythm[2], ratio(asides.len(), sentences) * 100.0);
+        out.set(self.rhythm[3], ratio(aside_tokens, asides.len()));
+        out.set(self.rhythm[4], ratio(aside_tokens, analysis.lexical_len()));
+    }
+
+    /// Link density, footnote density, rhetorical questions.
+    fn md_extended_rates(
+        &self,
+        analysis: &Analysis<'_>,
+        sentences: usize,
+        tokens: usize,
+        out: &mut VectorBuilder,
+    ) {
+        if self.md_extended.is_empty() {
+            return;
+        }
+        let source = analysis.source();
+        let mut links = 0usize;
+        for span in link_spans(source) {
+            links += 1;
+            out.note_span(self.md_extended[0], span);
+        }
+        out.set(self.md_extended[0], per_1k(links, tokens));
+
+        let mut footnotes = 0usize;
+        for span in footnote_spans(source) {
+            footnotes += 1;
+            out.note_span(self.md_extended[1], span);
+        }
+        out.set(self.md_extended[1], per_1k(footnotes, tokens));
+
+        let mut rhetorical = 0usize;
+        for sentence in &analysis.structure().sentences {
+            let text = analysis.text(sentence.span);
+            if is_rhetorical_question(text) {
+                rhetorical += 1;
+                out.note_span(self.md_extended[2], sentence.span);
+            }
+        }
+        out.set(self.md_extended[2], ratio(rhetorical, sentences) * 100.0);
+    }
+}
+
+/// Sentences looked back over when deciding what counts as "long".
+const WINDOW: usize = 4;
+/// A sentence is long at this multiple of the rolling mean.
+const LONG_FACTOR: f64 = 1.5;
+/// A sentence is short at this multiple of the rolling mean.
+const SHORT_FACTOR: f64 = 0.5;
+
+/// Byte spans of parenthetical and dash-delimited asides.
+///
+/// Three shapes: a paired `(…)`, a pair of spaced em dashes ` — … — `, and a
+/// footnote marker `[^n]`. Nested parentheses are not tracked — an aside inside
+/// an aside is counted once, at the outer pair — because the dimension is a
+/// rate and the nesting rate in prose is negligible.
+fn aside_spans(analysis: &Analysis<'_>) -> Vec<Span> {
+    let source = analysis.source();
+    let mut out = Vec::new();
+
+    let mut depth = 0usize;
+    let mut open = 0usize;
+    for (i, c) in source.char_indices() {
+        match c {
+            '(' => {
+                if depth == 0 {
+                    open = i;
+                }
+                depth += 1;
+            }
+            // An unmatched `)` closes nothing: a smiley or a list marker must
+            // not open an aside that runs to the end of the document.
+            ')' if depth == 1 => {
+                depth = 0;
+                out.push(Span::new(open, i + c.len_utf8()));
+            }
+            ')' => depth = depth.saturating_sub(1),
+            _ => {}
+        }
+    }
+
+    // Paired em dashes *within one sentence*: an unpaired dash is an
+    // interruption, not an aside, and pairing across a sentence boundary would
+    // swallow whole paragraphs.
+    for sentence in &analysis.structure().sentences {
+        let text = analysis.text(sentence.span);
+        let dashes: Vec<usize> = text
+            .char_indices()
+            .filter(|&(_, c)| c == '\u{2014}' || c == '\u{2013}')
+            .map(|(i, _)| i)
+            .collect();
+        for pair in dashes.chunks_exact(2) {
+            out.push(Span::new(
+                sentence.span.start + pair[0],
+                sentence.span.start + pair[1] + '\u{2014}'.len_utf8(),
+            ));
+        }
+    }
+
+    out.extend(footnote_spans(source));
+    out.sort_by_key(|s| (s.start, s.end));
+    out.dedup();
+    out
+}
+
+/// Byte spans of markdown links and bare URLs.
+fn link_spans(source: &str) -> Vec<Span> {
+    let bytes = source.as_bytes();
+    let mut out = Vec::new();
+    let mut i = 0usize;
+    while i < bytes.len() {
+        if bytes[i] == b'[' {
+            // `[text](target)`, with no nesting inside the label.
+            if let Some(close) = source[i..].find("](") {
+                let label_end = i + close;
+                if let Some(paren) = source[label_end + 2..].find(')') {
+                    let end = label_end + 2 + paren + 1;
+                    out.push(Span::new(i, end));
+                    i = end;
+                    continue;
+                }
+            }
+        }
+        if source[i..].starts_with("http://") || source[i..].starts_with("https://") {
+            let end = source[i..]
+                .find(|c: char| c.is_whitespace() || c == ')' || c == '>')
+                .map_or(source.len(), |n| i + n);
+            // A bare URL already inside a markdown link was counted above; the
+            // cursor skipped past it, so reaching here means it stands alone.
+            out.push(Span::new(i, end));
+            i = end;
+            continue;
+        }
+        i += 1;
+    }
+    out
+}
+
+/// Byte spans of `[^n]`-style footnote markers.
+fn footnote_spans(source: &str) -> Vec<Span> {
+    let mut out = Vec::new();
+    let mut search = 0usize;
+    while let Some(found) = source[search..].find("[^") {
+        let start = search + found;
+        match source[start..].find(']') {
+            Some(close) => {
+                let end = start + close + 1;
+                out.push(Span::new(start, end));
+                search = end;
+            }
+            None => break,
+        }
+    }
+    out
+}
+
+/// Second-person addressee patterns that make a question a real one.
+const ADDRESSEE_OPENERS: &[&str] = &[
+    "do you",
+    "did you",
+    "can you",
+    "could you",
+    "would you",
+    "will you",
+    "have you",
+    "are you",
+    "is there any",
+    "does anyone",
+    "did anyone",
+];
+
+/// Whether a question is rhetorical rather than an actual request.
+///
+/// Documented heuristic: a question is treated as rhetorical unless it opens
+/// with one of the second-person addressee patterns above. That over-claims on
+/// genuine questions in a conversational register ("Why does this happen?" asked
+/// in earnest reads as rhetorical here) and under-claims on the rhetorical
+/// second-person ("Do you really think that helps?"). Both errors are the same
+/// on the corpus side and the draft side.
+fn is_rhetorical_question(sentence: &str) -> bool {
+    let trimmed = sentence.trim_end();
+    if !trimmed.ends_with('?') {
+        return false;
+    }
+    let lower = trimmed.to_lowercase();
+    let head: String = lower
+        .trim_start_matches(|c: char| !c.is_alphanumeric())
+        .chars()
+        .take(16)
+        .collect();
+    !ADDRESSEE_OPENERS.iter().any(|p| head.starts_with(p))
 }
 
 #[cfg(test)]
@@ -534,6 +880,188 @@ mod tests {
         // Nine lexical tokens, one marker → 111.11 per 1k.
         let text = "one two however three four five six seven eight";
         assert!((value(text, "sent:marker:however") - 1000.0 / 9.0).abs() < 1e-6);
+    }
+
+    fn transform_with(spec: SentenceStats, text: &str) -> (FeatureVector, Interner) {
+        let corpus = Corpus::new();
+        let ctx = FitContext::new(&corpus, &[]);
+        let mut interner = Interner::new();
+        let fitted = spec.fit(&ctx, &mut interner).unwrap();
+        let doc = Document::new(text);
+        let analysis = doc.analyze(&Tokenizer::default());
+        let mut b = VectorBuilder::new().track_spans(true);
+        fitted.transform(&analysis, &mut b);
+        (b.build(), interner)
+    }
+
+    fn rhythm_value(text: &str, dim: &str) -> f64 {
+        let (v, i) = transform_with(SentenceStats::default().with_rhythm(), text);
+        v.get(i.get(dim).unwrap_or_else(|| panic!("no dim {dim}")))
+    }
+
+    fn md_value(text: &str, dim: &str) -> f64 {
+        let (v, i) = transform_with(SentenceStats::default().with_md_extended(), text);
+        v.get(i.get(dim).unwrap_or_else(|| panic!("no dim {dim}")))
+    }
+
+    #[test]
+    fn the_new_dimensions_are_absent_unless_asked_for() {
+        // The whole point of the spec flags: an existing reference gains no
+        // dimensions and profiles exactly as before.
+        let corpus = Corpus::new();
+        let ctx = FitContext::new(&corpus, &[]);
+        let mut interner = Interner::new();
+        SentenceStats::default().fit(&ctx, &mut interner).unwrap();
+        for name in [
+            "sent:punch_short_rate",
+            "sent:aside_rate",
+            "md:link_rate",
+            "sent:rhetorical_question_rate",
+        ] {
+            assert!(interner.get(name).is_none(), "{name} should be absent");
+        }
+        let spec: SentenceStats = serde_json::from_str("{}").unwrap();
+        assert!(!spec.rhythm);
+        assert!(!spec.md_extended);
+        assert_eq!(spec, SentenceStats::default());
+    }
+
+    #[test]
+    fn a_short_sentence_after_a_long_one_is_a_punch() {
+        // Four ordinary sentences, then a long one, then a two-word punch.
+        let text = "aa bb cc dd ee ff. gg hh ii jj kk ll. mm nn oo pp qq rr. \
+                    ss tt uu vv ww xx yy zz ab cd ef gh ij kl mn op qq. yes.";
+        let rate = rhythm_value(text, "sent:punch_short_rate");
+        // One punch across five sentences.
+        assert!((rate - 20.0).abs() < 1e-9, "{rate}");
+        // Uniform sentences have none.
+        let uniform = "aa bb cc dd. ee ff gg hh. ii jj kk ll. mm nn oo pp. qq rr ss tt.";
+        assert_eq!(rhythm_value(uniform, "sent:punch_short_rate"), 0.0);
+    }
+
+    #[test]
+    fn punch_spans_point_at_the_short_sentence() {
+        let text = "aa bb cc dd ee ff. gg hh ii jj kk ll. mm nn oo pp qq rr. \
+                    ss tt uu vv ww xx yy zz ab cd ef gh ij kl mn op qq. yes.";
+        let (v, i) = transform_with(SentenceStats::default().with_rhythm(), text);
+        let spans = v.spans(i.get("sent:punch_short_rate").unwrap());
+        assert_eq!(spans.len(), 1);
+        assert_eq!(&text[spans[0].range()], "yes.");
+    }
+
+    #[test]
+    fn asides_are_counted_with_their_length_and_share() {
+        // Two asides: one parenthetical of two tokens, one em-dashed of three.
+        let text = "The build broke (again) this morning. \
+                    We fixed it — or thought we had — before lunch. \
+                    Nothing else happened. It was fine.";
+        assert!((rhythm_value(text, "sent:aside_rate") - 50.0).abs() < 1e-9);
+        // Five aside tokens across two asides.
+        let mean = rhythm_value(text, "sent:aside_len_mean");
+        assert!((mean - 2.5).abs() < 1e-9, "{mean}");
+        assert!(rhythm_value(text, "sent:aside_share") > 0.0);
+        // Prose with no asides scores zero, not missing.
+        let plain = "The build broke this morning. We fixed it. Nothing else. Fine.";
+        assert_eq!(rhythm_value(plain, "sent:aside_rate"), 0.0);
+    }
+
+    #[test]
+    fn an_unpaired_dash_is_an_interruption_not_an_aside() {
+        let text = "We fixed it — eventually. Nothing else happened. It was fine. Good.";
+        assert_eq!(rhythm_value(text, "sent:aside_rate"), 0.0);
+    }
+
+    #[test]
+    fn the_final_clause_ratio_falls_when_the_punch_is_short() {
+        let short_tail = "the whole thing ran for hours and produced nothing at all, twice. \
+                          the second attempt also ran for hours and produced nothing, again. \
+                          the third one worked for a while and then stopped entirely, oddly. \
+                          the fourth attempt behaved and finished in a couple of minutes, fine.";
+        let long_tail = "the whole thing ran for hours, and produced nothing at all across \
+                         every single one of the shards we looked at. the second attempt \
+                         also ran, and produced nothing at all across every single shard we \
+                         checked afterwards. the third one worked, and then stopped entirely \
+                         after running for most of the afternoon without warning. the fourth \
+                         behaved, and finished in a couple of minutes without any of the \
+                         problems the earlier runs had shown.";
+        assert!(
+            rhythm_value(short_tail, "sent:final_clause_len_ratio")
+                < rhythm_value(long_tail, "sent:final_clause_len_ratio")
+        );
+    }
+
+    #[test]
+    fn a_document_with_no_clause_marks_has_no_final_clause_ratio() {
+        let (v, i) = transform_with(
+            SentenceStats::default().with_rhythm(),
+            "One thing. Then another. And a third. Done.",
+        );
+        assert!(v.is_missing(i.get("sent:final_clause_len_ratio").unwrap()));
+    }
+
+    #[test]
+    fn link_and_footnote_densities_are_exact_per_thousand() {
+        // Ten lexical tokens outside the markup, two links, one footnote.
+        let text = "See [the docs](https://example.com/a) and https://example.com/b \
+                    for more[^1] on this.";
+        let (v, i) = transform_with(SentenceStats::default().with_md_extended(), text);
+        let tokens = {
+            let doc = Document::new(text);
+            doc.analyze(&Tokenizer::default()).lexical_len()
+        };
+        let links = v.get(i.get("md:link_rate").unwrap());
+        assert!(
+            (links - 2.0 * 1000.0 / tokens as f64).abs() < 1e-9,
+            "{links} over {tokens} tokens"
+        );
+        let footnotes = v.get(i.get("md:footnote_rate").unwrap());
+        assert!(
+            (footnotes - 1000.0 / tokens as f64).abs() < 1e-9,
+            "{footnotes}"
+        );
+        assert_eq!(
+            md_value("Plain prose with no apparatus at all here.", "md:link_rate"),
+            0.0
+        );
+    }
+
+    #[test]
+    fn link_spans_cover_the_whole_markup() {
+        let text = "See [the docs](https://example.com/a) now.";
+        let (v, i) = transform_with(SentenceStats::default().with_md_extended(), text);
+        let spans = v.spans(i.get("md:link_rate").unwrap());
+        assert_eq!(spans.len(), 1);
+        assert_eq!(&text[spans[0].range()], "[the docs](https://example.com/a)");
+    }
+
+    #[test]
+    fn rhetorical_questions_are_separated_from_real_ones() {
+        // Two rhetorical, one addressed, one statement.
+        let text = "Why does this keep happening? What could possibly go wrong? \
+                    Do you have the logs? It broke again.";
+        assert!((md_value(text, "sent:rhetorical_question_rate") - 50.0).abs() < 1e-9);
+        assert_eq!(
+            md_value(
+                "It broke. We fixed it. Nothing else. Fine.",
+                "sent:rhetorical_question_rate"
+            ),
+            0.0
+        );
+    }
+
+    #[test]
+    fn the_rhythm_and_aside_dims_stay_in_the_sentence_family() {
+        // They must never become canary candidates: the canary has to be a
+        // family a word-swapping rewrite cannot move, and these are reported.
+        let corpus = Corpus::new();
+        let ctx = FitContext::new(&corpus, &[]);
+        let mut interner = Interner::new();
+        let fitted = SentenceStats::default()
+            .with_rhythm()
+            .with_md_extended()
+            .fit(&ctx, &mut interner)
+            .unwrap();
+        assert!(fitted.dims().iter().all(|d| d.family == Family::Sentence));
     }
 
     #[test]

@@ -68,6 +68,14 @@ pub enum Family {
     /// Register: Biber lexico-grammatical rates, readability grades, weighted
     /// norm densities, formality variance.
     Register,
+    /// Punch rhythm: where surprisal spikes land inside a sentence.
+    ///
+    /// Separate from [`Family::Surprisal`] on purpose. The surprisal family is
+    /// the critic loop's default canary — scored, never reported — and a
+    /// punchline dimension emitted by the same fitted feature would be
+    /// unreportable by inheritance, or would contaminate the canary if it were
+    /// reported. Splitting the family is what lets both work.
+    Rhythm,
 }
 
 impl Family {
@@ -83,6 +91,7 @@ impl Family {
             Family::Surprisal => "surprisal",
             Family::Contrast => "contrast",
             Family::Register => "register",
+            Family::Rhythm => "rhythm",
         }
     }
 
@@ -104,6 +113,9 @@ impl Family {
             // two-sentence draft says nothing about the rate.
             Family::Register => (150, 600),
             Family::Surprisal => (100, 300),
+            // A punch ratio needs several clause-split sentences before its
+            // mean says anything, and those are a minority of sentences.
+            Family::Rhythm => (200, 800),
             Family::Richness => (150, 500),
             Family::CharNgram => (300, 1000),
             Family::Contrast => (150, 500),

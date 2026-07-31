@@ -1446,6 +1446,99 @@ mod tests {
     }
 
     #[test]
+    fn punch_dims_are_reportable_under_the_default_surprisal_canary() {
+        // W2's canary-safety requirement. The punch dimensions are emitted by
+        // the surprisal feature, which is the default canary — so if they
+        // inherited its family they would be silently unreportable, and the
+        // whole phase would produce nothing an agent can act on.
+        use crate::feature::SurprisalLm;
+
+        // A corpus whose sentences never spike at the end.
+        let flat_bits: &[&str] = &[
+            "the team shipped the change on friday, and the build stayed green all weekend",
+            "we looked at the logs again, and the numbers matched the sheet exactly",
+            "the cache was stale, so the worker read the old value twice",
+            "nobody noticed the problem, because the dashboard showed the mean",
+        ];
+        let mut corpus = Corpus::new();
+        for i in 0..30usize {
+            corpus.add(
+                format!("d{i}"),
+                [Document::new(compose(3_000 + i as u64, flat_bits, 30, "."))],
+            );
+        }
+        let reference = Pipeline::builder()
+            .feature(PunctTypography::default())
+            .feature(SurprisalLm {
+                word_bigrams: true,
+                punchline: true,
+                min_corpus_chars: 1_000,
+                ..Default::default()
+            })
+            .name("punch")
+            .fit(&corpus)
+            .unwrap();
+        assert!(reference.families().contains(&Family::Rhythm));
+
+        let targets: Vec<Profile> = (0..12)
+            .map(|i| {
+                reference.profile(&Document::new(compose(
+                    3_000 + i as u64,
+                    flat_bits,
+                    30,
+                    ".",
+                )))
+            })
+            .collect();
+        let mut critic = Critic::with_config(
+            &reference,
+            targets,
+            None,
+            CritiqueConfig {
+                max_findings: 200,
+                metric: Some(Metric::BurrowsDelta),
+                ..Default::default()
+            },
+        );
+        assert_eq!(critic.canary_family(), Some(Family::Surprisal));
+
+        // A draft whose every sentence ends on a word the corpus never saw.
+        let spiked: String = (0..30)
+            .map(|i| {
+                format!(
+                    "the team shipped the change on friday, zqx{i}. \
+                     we looked at the logs again, wkv{i}. \
+                     the cache was stale, qpl{i}. \
+                     nobody noticed the problem, vxk{i}. "
+                )
+            })
+            .collect();
+        let report = critic.review(&spiked).unwrap();
+
+        let punch: Vec<&Finding> = report
+            .findings
+            .iter()
+            .filter(|f| f.id.starts_with("surp.punch"))
+            .collect();
+        assert!(
+            !punch.is_empty(),
+            "punch dims must be reportable; got {:?}",
+            report.findings.iter().map(|f| &f.id).collect::<Vec<_>>()
+        );
+        for finding in &punch {
+            assert_eq!(finding.family, Family::Rhythm);
+            assert_eq!(finding.direction, Direction::Reduce);
+        }
+        // The surprisal family itself stays held out.
+        assert!(report
+            .findings
+            .iter()
+            .all(|f| f.family != Family::Surprisal));
+        // And the family name reaches the contract as an open-set value.
+        assert!(report.doc.confidence.contains_key("rhythm"));
+    }
+
+    #[test]
     fn an_absent_canary_family_falls_back_and_says_so() {
         let corpus = corpus(30, human);
         let reference = Pipeline::builder()

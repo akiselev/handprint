@@ -95,6 +95,14 @@ fn fit(command: Command) -> Result<i32> {
             FeatureArg::Hyland => builder.feature(builtin_pack_feature("hyland", true)?),
             FeatureArg::DocStyle => builder.feature(builtin_pack_feature("doc-style", false)?),
             FeatureArg::TechVoice => builder.feature(builtin_pack_feature("tech-voice", true)?),
+            FeatureArg::SentenceRhythm => {
+                builder.feature(SentenceStats::default().with_rhythm().with_md_extended())
+            }
+            FeatureArg::Punchline => builder.feature(SurprisalLm {
+                word_bigrams: true,
+                punchline: true,
+                ..Default::default()
+            }),
         };
     }
 

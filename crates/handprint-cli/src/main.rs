@@ -88,6 +88,12 @@ pub enum FeatureArg {
     DocStyle,
     /// The bundled tech-blogger voice pack, as category rates.
     TechVoice,
+    /// Sentence structure *plus* punch rhythm, asides, links, footnotes and
+    /// rhetorical questions. Replaces `sentence`; do not pass both.
+    SentenceRhythm,
+    /// Corpus surprisal *plus* the punchline dimensions, which need the
+    /// word-bigram model. Replaces `surprisal`; do not pass both.
+    Punchline,
 }
 
 /// Which threshold profile to hold a draft to.

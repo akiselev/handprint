@@ -811,6 +811,42 @@ impl PipelineBuilder {
         if dims.is_empty() {
             return Err(Error::EmptyPipeline);
         }
+        // Two features claiming the same dimension name would intern to one
+        // symbol and land twice in the dense layout, so every profile after
+        // this point would silently read one of them out of the other's slot.
+        // The usual cause is declaring a family twice with different flags.
+        {
+            let mut seen: Vec<Symbol> = dims.iter().map(|d| d.symbol).collect();
+            seen.sort_unstable();
+            let before = seen.len();
+            seen.dedup();
+            if seen.len() != before {
+                let mut names: Vec<&str> = Vec::new();
+                let mut counts: HashMap<Symbol, usize> = HashMap::new();
+                for dim in &dims {
+                    *counts.entry(dim.symbol).or_insert(0) += 1;
+                }
+                for dim in &dims {
+                    if counts[&dim.symbol] > 1 {
+                        let name = interner.resolve(dim.symbol);
+                        if !names.contains(&name) {
+                            names.push(name);
+                        }
+                    }
+                }
+                names.sort_unstable();
+                names.truncate(6);
+                return Err(Error::InvalidConfig {
+                    what: "Pipeline features",
+                    detail: format!(
+                        "two features emit the same dimension(s): {}. Declaring one family \
+                         twice — usually the same family with different flags — makes the \
+                         dense layout ambiguous. Configure it once.",
+                        names.join(", ")
+                    ),
+                });
+            }
+        }
 
         // Transform the corpus once more to collect per-dimension statistics.
         // This second pass is what makes `transform` pure: everything
