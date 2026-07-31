@@ -36,6 +36,7 @@ use crate::feature::lexicon::{LexiconPack, Severity};
 pub const VERSION: &str = "2026.08";
 
 /// Hedges: markers that withhold full commitment to a claim.
+#[rustfmt::skip]
 const HEDGES: &[WordRow] = &[
     ("about", "hedges", Severity::Low, &[]),
     ("almost", "hedges", Severity::Low, &[]),
@@ -105,6 +106,7 @@ const HEDGES: &[WordRow] = &[
 ];
 
 /// Boosters: markers that close down alternatives and assert certainty.
+#[rustfmt::skip]
 const BOOSTERS: &[WordRow] = &[
     ("actually", "boosters", Severity::Low, &[]),
     ("always", "boosters", Severity::Low, &[]),
@@ -143,6 +145,7 @@ const BOOSTERS: &[WordRow] = &[
 ];
 
 /// Attitude markers: the writer's affective stance toward a proposition.
+#[rustfmt::skip]
 const ATTITUDE: &[WordRow] = &[
     ("agree", "attitude", Severity::Low, &[]),
     ("amazing", "attitude", Severity::Low, &[]),
@@ -186,6 +189,7 @@ const ATTITUDE: &[WordRow] = &[
 /// only carry one dimension here — interning it twice would silently overwrite
 /// the first rule and make the category rates stop adding up — so it is filed
 /// under hedges, its commoner reading in prose.
+#[rustfmt::skip]
 const ENGAGEMENT: &[WordRow] = &[
     ("consider", "engagement", Severity::Low, &[]),
     ("imagine", "engagement", Severity::Low, &[]),
@@ -202,6 +206,7 @@ const ENGAGEMENT: &[WordRow] = &[
 ];
 
 /// Self-mentions: explicit authorial presence.
+#[rustfmt::skip]
 const SELF_MENTION: &[WordRow] = &[
     ("i", "self_mention", Severity::Low, &[]),
     ("me", "self_mention", Severity::Low, &[]),
@@ -216,6 +221,7 @@ const SELF_MENTION: &[WordRow] = &[
 ];
 
 /// Transitions: the interactive markers that mark logical relations.
+#[rustfmt::skip]
 const TRANSITIONS: &[WordRow] = &[
     ("accordingly", "transitions", Severity::Low, &[]),
     ("additionally", "transitions", Severity::Low, &[]),
@@ -243,6 +249,7 @@ const TRANSITIONS: &[WordRow] = &[
 ];
 
 /// Frame markers: sequencing, staging, topic shifts, goal announcements.
+#[rustfmt::skip]
 const FRAME_MARKERS: &[WordRow] = &[
     ("finally", "frame_markers", Severity::Low, &[]),
     ("first", "frame_markers", Severity::Low, &[]),
@@ -257,6 +264,7 @@ const FRAME_MARKERS: &[WordRow] = &[
 ];
 
 /// Endophorics: pointers to other parts of the same text.
+#[rustfmt::skip]
 const ENDOPHORICS: &[WordRow] = &[
     ("above", "endophorics", Severity::Low, &[]),
     ("below", "endophorics", Severity::Low, &[]),
@@ -270,6 +278,7 @@ const ENDOPHORICS: &[WordRow] = &[
 ];
 
 /// Evidentials: attributions of a claim to a source outside the text.
+#[rustfmt::skip]
 const EVIDENTIALS: &[WordRow] = &[
     ("according", "evidentials", Severity::Low, &[]),
     ("cited", "evidentials", Severity::Low, &[]),
@@ -281,6 +290,7 @@ const EVIDENTIALS: &[WordRow] = &[
 ];
 
 /// Code glosses: reformulations and exemplifications.
+#[rustfmt::skip]
 const CODE_GLOSSES: &[WordRow] = &[
     ("eg", "code_glosses", Severity::Low, &[]),
     ("ie", "code_glosses", Severity::Low, &[]),
@@ -290,6 +300,7 @@ const CODE_GLOSSES: &[WordRow] = &[
 ];
 
 /// The multi-token members of the same categories.
+#[rustfmt::skip]
 const HYLAND_PHRASES: &[PhraseRow] = &[
     // Hedges.
     (

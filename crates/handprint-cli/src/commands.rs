@@ -9,8 +9,8 @@ use handprint_core::critique::{Critic, Mode};
 use handprint_core::feature::lexicon::Severity;
 use handprint_core::feature::vocab::Universe;
 use handprint_core::feature::{
-    BiberTier1, CharNgrams, LexiconFeature, MostFrequentWords, PunctTypography, Readability,
-    Richness, SentenceStats, SurprisalLm,
+    BiberTier1, CharNgrams, ComparisonFrames, LexiconFeature, MostFrequentWords, PunctTypography,
+    Readability, RegisterClash, Richness, SentenceStats, SurprisalLm,
 };
 use handprint_core::reference::calibrate::CalibrationConfig;
 use handprint_core::verify::{impostor_pool, Thresholds, VerifyConfig};
@@ -103,6 +103,12 @@ fn fit(command: Command) -> Result<i32> {
                 punchline: true,
                 ..Default::default()
             }),
+            FeatureArg::Frames => {
+                let frozen = handprint_core::feature::packs::builtin("cliche-similes")
+                    .expect("the frozen-simile pack is bundled");
+                builder.feature(ComparisonFrames::default().with_frozen(frozen))
+            }
+            FeatureArg::Formality => builder.feature(RegisterClash::default()),
         };
     }
 

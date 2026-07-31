@@ -18,6 +18,8 @@ use crate::vector::{Interner, Symbol, VectorBuilder};
 
 pub mod biber;
 pub mod char_ngram;
+pub mod formality;
+pub mod frames;
 pub mod lexicon;
 pub mod mfw;
 pub mod pack;
@@ -31,6 +33,8 @@ pub mod vocab;
 
 pub use biber::{BiberTier1, FittedBiber};
 pub use char_ngram::{CharNgrams, FittedCharNgrams, NgramType, NgramTypes};
+pub use formality::{FittedFormality, RegisterClash};
+pub use frames::{ComparisonFrames, FittedFrames};
 pub use lexicon::{FittedLexicon, LexiconFeature, LexiconPack, PackSource, Phrase, Term};
 pub use mfw::{FittedMfw, MostFrequentWords, VocabMode};
 pub use pack::{CountPack, NormEntry, NormPack};
@@ -68,6 +72,9 @@ pub enum Family {
     /// Register: Biber lexico-grammatical rates, readability grades, weighted
     /// norm densities, formality variance.
     Register,
+    /// Rhetorical device rates: comparison frames, litotes, absurd precision,
+    /// transferred epithets, marketing structure.
+    Device,
     /// Punch rhythm: where surprisal spikes land inside a sentence.
     ///
     /// Separate from [`Family::Surprisal`] on purpose. The surprisal family is
@@ -91,6 +98,7 @@ impl Family {
             Family::Surprisal => "surprisal",
             Family::Contrast => "contrast",
             Family::Register => "register",
+            Family::Device => "device",
             Family::Rhythm => "rhythm",
         }
     }
@@ -113,6 +121,10 @@ impl Family {
             // two-sentence draft says nothing about the rate.
             Family::Register => (150, 600),
             Family::Surprisal => (100, 300),
+            // Pattern rates need length: a simile or a litotes is rare enough
+            // that a short draft's rate is dominated by whether it happens to
+            // contain one at all.
+            Family::Device => (300, 1200),
             // A punch ratio needs several clause-split sentences before its
             // mean says anything, and those are a minority of sentences.
             Family::Rhythm => (200, 800),
@@ -468,6 +480,10 @@ feature_kinds! {
     Biber => BiberTier1, FittedBiber;
     /// Readability grades, passive proxy, acronym density.
     Readability => Readability, FittedReadability;
+    /// Comparison frames: similes, negated vehicles, ironic hedges.
+    Frames => ComparisonFrames, FittedFrames;
+    /// Within-sentence formality variance and register clash.
+    Formality => RegisterClash, FittedFormality;
 }
 
 /// Rate per 1,000 tokens, guarding the zero-length case.

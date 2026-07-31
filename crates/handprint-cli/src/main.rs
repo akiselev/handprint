@@ -94,6 +94,12 @@ pub enum FeatureArg {
     /// Corpus surprisal *plus* the punchline dimensions, which need the
     /// word-bigram model. Replaces `surprisal`; do not pass both.
     Punchline,
+    /// Comparison frames: similes, negated vehicles, ironic hedges, cliché
+    /// share against the bundled frozen-simile pack.
+    Frames,
+    /// Within-sentence formality variance and register clash, using the
+    /// bundled closed-class proxy unless a norm pack is supplied.
+    Formality,
 }
 
 /// Which threshold profile to hold a draft to.

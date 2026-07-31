@@ -28,6 +28,7 @@ use crate::feature::lexicon::{LexiconPack, Severity};
 /// Version of this pack's contents.
 pub const VERSION: &str = "2026.08";
 
+#[rustfmt::skip]
 const TECH_VOICE_PHRASES: &[PhraseRow] = &[
     // Discourse pivots.
     ("tech.anyway", "anyway", "pivot", Severity::Low, ""),

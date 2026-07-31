@@ -26,6 +26,7 @@ use crate::feature::lexicon::{LexiconPack, Severity};
 /// Version of this pack's contents.
 pub const VERSION: &str = "2026.08";
 
+#[rustfmt::skip]
 const WEASEL: &[WordRow] = &[
     ("very", "weasel", Severity::Low, &["(cut it)"]),
     ("really", "weasel", Severity::Low, &["(cut it)"]),
@@ -54,6 +55,7 @@ const WEASEL: &[WordRow] = &[
     ("importantly", "weasel", Severity::Low, &["(cut it)"]),
 ];
 
+#[rustfmt::skip]
 const WORDY: &[WordRow] = &[
     ("utilize", "wordy", Severity::Medium, &["use"]),
     ("utilizes", "wordy", Severity::Medium, &["uses"]),
@@ -110,6 +112,7 @@ const WORDY: &[WordRow] = &[
     ("furthermore", "wordy", Severity::Low, &["also"]),
 ];
 
+#[rustfmt::skip]
 const CLICHE: &[WordRow] = &[
     (
         "paradigm",
@@ -148,6 +151,7 @@ const CLICHE: &[WordRow] = &[
     ),
 ];
 
+#[rustfmt::skip]
 const DOC_STYLE_PHRASES: &[PhraseRow] = &[
     // Wordy phrases with a documented short form.
     (
@@ -426,6 +430,7 @@ const DOC_STYLE_PHRASES: &[PhraseRow] = &[
 /// stays a phrase pattern rather than a term: the pattern language cannot
 /// anchor to a sentence start, but the token sequence `so ,` only occurs in
 /// that position in practice.
+#[rustfmt::skip]
 const OPENER_PHRASES: &[PhraseRow] = &[
     (
         "style.opener_so",

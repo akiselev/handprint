@@ -27,12 +27,22 @@
 
 use super::lexicon::{LexiconPack, PackSource, Phrase, Severity, Term};
 
+mod cliche_similes;
 mod doc_style;
 mod hyland;
+mod norms;
 mod tech_voice;
 
+pub use norms::heylighen_formality;
+
 /// Every bundled pack's name, in a stable order.
-pub const BUILTIN_PACKS: &[&str] = &["ai-slop", "hyland", "doc-style", "tech-voice"];
+pub const BUILTIN_PACKS: &[&str] = &[
+    "ai-slop",
+    "hyland",
+    "doc-style",
+    "tech-voice",
+    "cliche-similes",
+];
 
 /// Look a bundled lexicon pack up by name.
 pub fn builtin(name: &str) -> Option<LexiconPack> {
@@ -41,6 +51,7 @@ pub fn builtin(name: &str) -> Option<LexiconPack> {
         "hyland" => hyland::pack(),
         "doc-style" => doc_style::pack(),
         "tech-voice" => tech_voice::pack(),
+        "cliche-similes" => cliche_similes::pack(),
         _ => return None,
     })
 }
