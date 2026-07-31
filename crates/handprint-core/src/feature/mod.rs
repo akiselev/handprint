@@ -18,10 +18,12 @@ use crate::vector::{Interner, Symbol, VectorBuilder};
 
 pub mod biber;
 pub mod char_ngram;
+pub mod device;
 pub mod formality;
 pub mod frames;
 pub mod lexicon;
 pub mod mfw;
+pub mod norms;
 pub mod pack;
 pub mod packs;
 pub mod punct;
@@ -33,10 +35,12 @@ pub mod vocab;
 
 pub use biber::{BiberTier1, FittedBiber};
 pub use char_ngram::{CharNgrams, FittedCharNgrams, NgramType, NgramTypes};
+pub use device::{DeviceRates, FittedDevices};
 pub use formality::{FittedFormality, RegisterClash};
 pub use frames::{ComparisonFrames, FittedFrames};
 pub use lexicon::{FittedLexicon, LexiconFeature, LexiconPack, PackSource, Phrase, Term};
 pub use mfw::{FittedMfw, MostFrequentWords, VocabMode};
+pub use norms::{FittedNorms, NormDensity};
 pub use pack::{CountPack, NormEntry, NormPack};
 pub use punct::{FittedPunct, PunctTypography};
 pub use readability::{FittedReadability, Readability};
@@ -484,6 +488,10 @@ feature_kinds! {
     Frames => ComparisonFrames, FittedFrames;
     /// Within-sentence formality variance and register clash.
     Formality => RegisterClash, FittedFormality;
+    /// Rhetorical device rates and the marketing-structural family.
+    Device => DeviceRates, FittedDevices;
+    /// Weighted-lexicon density: concreteness, arousal, sensory, boosters.
+    NormDensity => NormDensity, FittedNorms;
 }
 
 /// Rate per 1,000 tokens, guarding the zero-length case.

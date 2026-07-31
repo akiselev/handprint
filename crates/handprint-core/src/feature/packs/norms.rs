@@ -132,9 +132,167 @@ pub fn heylighen_formality() -> NormPack {
     }
 }
 
+/// VADER booster weights: words that scale an adjacent sentiment term.
+///
+/// MIT-licensed and small, so it ships. Consumed by the syntax family's
+/// intensifier and booster-chain dimensions — a *run* of these is the Thompson
+/// escalation marker, and a run is only definable against a list.
+#[rustfmt::skip]
+const BOOSTERS: &[NormRow] = &[
+    ("absolutely", 0.293), ("amazingly", 0.293), ("awfully", 0.293), ("completely", 0.293),
+    ("considerable", 0.293), ("considerably", 0.293), ("decidedly", 0.293), ("deeply", 0.293),
+    ("effing", 0.293), ("enormous", 0.293), ("enormously", 0.293), ("entirely", 0.293),
+    ("especially", 0.293), ("exceptional", 0.293), ("exceptionally", 0.293),
+    ("extreme", 0.293), ("extremely", 0.293), ("fabulously", 0.293), ("flat", 0.293),
+    ("fully", 0.293), ("frickin", 0.293), ("frigging", 0.293), ("fucking", 0.293),
+    ("greatly", 0.293), ("hella", 0.293), ("highly", 0.293), ("hugely", 0.293),
+    ("incredible", 0.293), ("incredibly", 0.293), ("intensely", 0.293), ("major", 0.293),
+    ("majorly", 0.293), ("more", 0.293), ("most", 0.293), ("particularly", 0.293),
+    ("purely", 0.293), ("quite", 0.293), ("really", 0.293), ("remarkably", 0.293),
+    ("so", 0.293), ("substantially", 0.293), ("thoroughly", 0.293), ("total", 0.293),
+    ("totally", 0.293), ("tremendous", 0.293), ("tremendously", 0.293), ("uber", 0.293),
+    ("unbelievably", 0.293), ("unusually", 0.293), ("utterly", 0.293), ("very", 0.293),
+    ("damn", 0.293), ("goddamn", 0.293), ("bloody", 0.293), ("wildly", 0.293),
+    ("savagely", 0.293), ("violently", 0.293), ("desperately", 0.293), ("horribly", 0.293),
+    ("terribly", 0.293), ("insanely", 0.293), ("ridiculously", 0.293), ("absurdly", 0.293),
+    // Dampeners: the same list's negative half.
+    ("almost", -0.293), ("barely", -0.293), ("hardly", -0.293), ("just", -0.293),
+    ("kind", -0.293), ("kinda", -0.293), ("less", -0.293), ("little", -0.293),
+    ("marginal", -0.293), ("marginally", -0.293), ("occasional", -0.293),
+    ("occasionally", -0.293), ("partly", -0.293), ("scarce", -0.293), ("scarcely", -0.293),
+    ("slight", -0.293), ("slightly", -0.293), ("somewhat", -0.293), ("sort", -0.293),
+    ("sorta", -0.293),
+];
+
+/// The bundled VADER booster weights.
+pub fn vader_boosters() -> NormPack {
+    NormPack {
+        name: "vader-boosters".into(),
+        version: VERSION.into(),
+        date: "2026-08-01".into(),
+        description: "VADER booster/dampener weights: words that scale an adjacent sentiment \
+                      term up or down. Positive weights amplify, negative weights damp."
+            .into(),
+        license: "MIT".into(),
+        redistributable: true,
+        sources: vec![
+            source(
+                "VADER sentiment (cjhutto)",
+                "https://github.com/cjhutto/vaderSentiment",
+                "BOOSTER_DICT, MIT-licensed",
+            ),
+            source(
+                "Taboada et al., Lexicon-Based Sentiment Analysis",
+                "https://aclanthology.org/J11-2001.pdf",
+                "the amplifier/downtoner taxonomy behind the split",
+            ),
+        ],
+        entries: BOOSTERS
+            .iter()
+            .map(|(term, value)| NormEntry {
+                term: (*term).to_owned(),
+                value: *value,
+            })
+            .collect(),
+    }
+}
+
+/// A **demonstration** concreteness table — not Brysbaert's norms.
+///
+/// Brysbaert, Warriner & Kuperman's 37k-lemma concreteness ratings are the real
+/// data and are probably CC-BY-NC, so they are loader-only: supply them with
+/// [`DeviceRates::with_concreteness`](crate::feature::DeviceRates::with_concreteness).
+///
+/// This stub exists so the transferred-epithet and concreteness dimensions are
+/// *testable and demonstrable* without that download, and so nobody mistakes an
+/// absent table for a working one. It is a hundred hand-scored words on the
+/// same 1–5 scale, with `pd_basis` stated in its description, and it is not a
+/// substitute for the real norms in any measurement anyone reports.
+#[rustfmt::skip]
+const CONCRETENESS: &[NormRow] = &[
+    // Concrete: things you can point at.
+    ("forkful", 4.9), ("sandwich", 5.0), ("teapot", 5.0), ("brick", 5.0), ("chair", 5.0),
+    ("table", 4.9), ("window", 5.0), ("door", 5.0), ("hammer", 5.0), ("shoe", 5.0),
+    ("dog", 5.0), ("cat", 5.0), ("penguin", 5.0), ("tree", 5.0), ("river", 4.9),
+    ("bicycle", 5.0), ("kettle", 5.0), ("spoon", 5.0), ("bottle", 5.0), ("pencil", 5.0),
+    ("carpet", 4.9), ("staircase", 4.9), ("umbrella", 5.0), ("newspaper", 4.9),
+    ("suitcase", 4.9), ("elbow", 4.9), ("shoulder", 4.9), ("pie", 4.9), ("bread", 5.0),
+    ("coffee", 4.9), ("glass", 4.8), ("desk", 5.0), ("lamp", 5.0), ("keyboard", 4.9),
+    ("cable", 4.8), ("engine", 4.7), ("wall", 4.9), ("floor", 4.9), ("roof", 4.9),
+    ("boot", 4.9), ("hat", 5.0), ("coat", 5.0), ("knife", 5.0), ("plate", 5.0),
+    // Middling.
+    ("machine", 4.3), ("building", 4.5), ("street", 4.6), ("city", 4.3),
+    ("crowd", 4.1), ("meeting", 3.6), ("letter", 4.2), ("report", 3.5), ("message", 3.2),
+    // Abstract: things you cannot.
+    ("justice", 1.5), ("freedom", 1.7), ("truth", 1.6), ("meaning", 1.6), ("purpose", 1.6),
+    ("hope", 1.9), ("despair", 1.8), ("boredom", 1.8), ("happiness", 1.9), ("misery", 2.0),
+    ("theory", 1.7), ("concept", 1.6), ("idea", 1.8), ("possibility", 1.5), ("reason", 1.8),
+    ("consequence", 1.7), ("existence", 1.6), ("eternity", 1.6), ("infinity", 1.6),
+    ("bureaucracy", 2.1), ("policy", 2.0), ("strategy", 1.9), ("assumption", 1.7),
+    ("disappointment", 2.0), ("expectation", 1.8), ("responsibility", 1.9),
+];
+
+/// The bundled concreteness demonstration table. See [`CONCRETENESS`].
+pub fn concreteness_stub() -> NormPack {
+    NormPack {
+        name: "concreteness-stub".into(),
+        version: VERSION.into(),
+        date: "2026-08-01".into(),
+        description: "DEMONSTRATION concreteness table on the 1-5 Brysbaert scale — about a \
+                      hundred hand-scored words, NOT the 37k-lemma norms. Supply the real \
+                      ones with with_concreteness(); they are loader-only because their \
+                      likely CC-BY-NC terms conflict with commercial redistribution."
+            .into(),
+        license: "CC0-1.0".into(),
+        redistributable: true,
+        sources: vec![
+            source(
+                "Original hand-scored stub",
+                "https://github.com/akiselev/handprint",
+                "a demonstration table so the dimension is testable without a download",
+            ),
+            source(
+                "Brysbaert, Warriner & Kuperman (NOT bundled)",
+                "https://link.springer.com/article/10.3758/s13428-013-0403-5",
+                "the real 37k-lemma norms — loader-only, likely CC-BY-NC",
+            ),
+        ],
+        entries: CONCRETENESS
+            .iter()
+            .map(|(term, value)| NormEntry {
+                term: (*term).to_owned(),
+                value: *value,
+            })
+            .collect(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_booster_pack_splits_amplifiers_from_dampeners() {
+        let pack = vader_boosters();
+        pack.validate().unwrap();
+        assert!(pack.get("extremely").unwrap() > 0.0);
+        assert!(pack.get("barely").unwrap() < 0.0);
+        assert_eq!(pack.get("table"), None);
+        assert_eq!(pack.license, "MIT");
+    }
+
+    #[test]
+    fn the_concreteness_stub_is_labelled_as_a_stub() {
+        let pack = concreteness_stub();
+        pack.validate().unwrap();
+        // Nobody should be able to mistake this for the real norms.
+        assert!(pack.name.contains("stub"));
+        assert!(pack.description.contains("DEMONSTRATION"));
+        assert!(pack.sources.iter().any(|s| s.name.contains("NOT bundled")));
+        // It still has to span the scale, or the quartile cut is meaningless.
+        assert!(pack.get("brick").unwrap() > 4.0);
+        assert!(pack.get("justice").unwrap() < 2.0);
+    }
 
     #[test]
     fn the_proxy_validates_and_round_trips() {

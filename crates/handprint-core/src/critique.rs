@@ -2039,6 +2039,212 @@ mod tests {
         );
     }
 
+    /// Corpus fragments from an author who uses comic devices at a *moderate*
+    /// rate — some similes, some litotes, some triplets, not every sentence.
+    const DEVICE_BITS: &[&str] = &[
+        "The report landed on the desk like a brick and nobody opened it",
+        "It was not entirely clear who had signed off on the thing",
+        "We shipped it on friday and the build stayed green all weekend",
+        "The cache was stale so the worker read the old value twice",
+        "Nobody noticed the problem because the dashboard showed the mean",
+        "It ran for hours and produced nothing at all across every shard",
+        "The plan was fast, cheap, and wrong in roughly equal measure",
+        "I looked at the logs again and the numbers matched the sheet",
+        "The whole thing was hardly enormous but it took a week anyway",
+        "We tried that last year and it went about as well as expected",
+    ];
+
+    /// A pastiche that fires every device in every sentence: the Dark & Stormy
+    /// failure mode, where a model given no target rate maximizes instead.
+    const OVER_FIRED: &[&str] = &[
+        "The report landed like a brick, like a stone, like a catastrophic anvil of despair",
+        "It was not entirely unclear, not exactly obvious, hardly impossible to see",
+        "The plan was fast, cheap, and wrong, like a bicycle made of soup",
+        "It went about as well as a chocolate teapot, about as smoothly as gravel",
+        "The build was not un-broken, hardly perfect, about as green as a bruise",
+        "It ran like a dream, like a charm, like a train wreck of infinite despair",
+    ];
+
+    fn device_reference() -> (Reference, Vec<Profile>) {
+        use crate::feature::{ComparisonFrames, DeviceRates};
+
+        let mut corpus = Corpus::new();
+        for i in 0..30usize {
+            corpus.add(
+                format!("d{i}"),
+                [Document::new(compose(
+                    9_000 + i as u64,
+                    DEVICE_BITS,
+                    20,
+                    ".",
+                ))],
+            );
+        }
+        let reference = Pipeline::builder()
+            .feature(PunctTypography::default())
+            .feature(
+                ComparisonFrames::default()
+                    .with_frozen(crate::feature::packs::builtin("cliche-similes").unwrap()),
+            )
+            .feature(DeviceRates::default())
+            .name("device-corpus")
+            .fit(&corpus)
+            .unwrap();
+        let targets: Vec<Profile> = (0..12)
+            .map(|i| {
+                reference.profile(&Document::new(compose(
+                    9_000 + i as u64,
+                    DEVICE_BITS,
+                    20,
+                    ".",
+                )))
+            })
+            .collect();
+        (reference, targets)
+    }
+
+    #[test]
+    fn more_adams_than_adams_trips_the_upper_band() {
+        // The anti-caricature test the plan calls "more Adams than Adams".
+        // Over-firing a device is a *failure*, not an excess of virtue, and the
+        // finding has to say Reduce and render both band edges so the agent can
+        // see the ceiling it went through.
+        let (reference, targets) = device_reference();
+        let mut critic = Critic::with_config(
+            &reference,
+            targets,
+            None,
+            CritiqueConfig {
+                max_findings: 200,
+                metric: Some(Metric::BurrowsDelta),
+                ..Default::default()
+            },
+        );
+        let report = critic.review(&compose(9_500, OVER_FIRED, 20, ".")).unwrap();
+
+        let over: Vec<&Finding> = report
+            .findings
+            .iter()
+            .filter(|f| {
+                f.direction == Direction::Reduce
+                    && (f.id.starts_with("dev.") || f.id.starts_with("frame."))
+            })
+            .collect();
+        assert!(
+            !over.is_empty(),
+            "an over-fired pastiche must trip an upper band; got {:?}",
+            report.findings.iter().map(|f| &f.id).collect::<Vec<_>>()
+        );
+        for finding in &over {
+            assert_eq!(finding.family, Family::Device);
+            assert!(finding.observed > finding.target_band[1]);
+            // Both edges rendered, not only the one that was crossed.
+            assert!(
+                finding.message.contains('-'),
+                "message must render the band: {}",
+                finding.message
+            );
+        }
+        assert!(
+            over.iter().any(|f| f.severity >= Severity::Medium),
+            "over-firing should reach Medium: {:?}",
+            over.iter().map(|f| (&f.id, f.severity)).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn a_device_free_draft_is_told_to_increase_not_left_alone() {
+        // The other arm. Under-firing is as much a failure as over-firing —
+        // that is what makes the ○-cells in the coverage matrix testable.
+        let (reference, targets) = device_reference();
+        let mut critic = Critic::with_config(
+            &reference,
+            targets,
+            None,
+            CritiqueConfig {
+                max_findings: 200,
+                metric: Some(Metric::BurrowsDelta),
+                ..Default::default()
+            },
+        );
+        let flat: String = (0..20)
+            .map(|_| "The build finished and the tests passed and the report was filed. ")
+            .collect();
+        let report = critic.review(&flat).unwrap();
+        assert!(
+            report.findings.iter().any(|f| {
+                f.direction == Direction::Increase
+                    && (f.id.starts_with("dev.") || f.id.starts_with("frame."))
+            }),
+            "a device-free draft against a device-using corpus must be told to \
+             increase; got {:?}",
+            report
+                .findings
+                .iter()
+                .map(|f| (&f.id, f.direction))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn an_over_fired_marketing_fixture_trips_upper_bands() {
+        // The register-battery version, in miniature: booster-stuffed,
+        // triplet-heavy, imperative-heavy copy against a plain-prose corpus.
+        use crate::feature::{DeviceRates, LexiconFeature};
+
+        let corpus = corpus(30, human);
+        let reference = Pipeline::builder()
+            .feature(PunctTypography::default())
+            .feature(DeviceRates::default())
+            .feature(
+                LexiconFeature::new(crate::feature::packs::builtin("marketing-eval").unwrap())
+                    .category_findings(),
+            )
+            .name("plain-prose")
+            .fit(&corpus)
+            .unwrap();
+        let targets: Vec<Profile> = (0..12)
+            .map(|i| reference.profile(&Document::new(human(i))))
+            .collect();
+        let mut critic = Critic::with_config(
+            &reference,
+            targets,
+            None,
+            CritiqueConfig {
+                max_findings: 200,
+                metric: Some(Metric::BurrowsDelta),
+                ..Default::default()
+            },
+        );
+        let copy: String = (0..12)
+            .map(|_| {
+                "Unlock the potential of your team today. Get started now, free, and fast. \
+                 Only 3 left in stock. Join 40000 teams. This is why it works. \
+                 Trusted by 12000 companies. Try it free, risk free, and cancel anytime. "
+            })
+            .collect();
+        let report = critic.review(&copy).unwrap();
+
+        let tripped: Vec<&Finding> = report
+            .findings
+            .iter()
+            .filter(|f| f.direction == Direction::Reduce)
+            .filter(|f| f.id.starts_with("dev.") || f.id.starts_with("lex.marketing-eval."))
+            .collect();
+        assert!(
+            !tripped.is_empty(),
+            "marketing copy must trip upper bands against plain prose; got {:?}",
+            report.findings.iter().map(|f| &f.id).collect::<Vec<_>>()
+        );
+        assert!(
+            tripped.iter().any(|f| f.id.starts_with("dev.imperative")
+                || f.id.starts_with("dev.headline")
+                || f.id.contains("marketing-eval")),
+            "expected a directive or headline dimension: {:?}",
+            tripped.iter().map(|f| &f.id).collect::<Vec<_>>()
+        );
+    }
+
     #[test]
     fn the_report_round_trips_as_json_and_matches_the_contract() {
         let (reference, targets) = human_reference(false);

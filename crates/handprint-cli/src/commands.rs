@@ -9,8 +9,8 @@ use handprint_core::critique::{Critic, Mode};
 use handprint_core::feature::lexicon::Severity;
 use handprint_core::feature::vocab::Universe;
 use handprint_core::feature::{
-    BiberTier1, CharNgrams, ComparisonFrames, LexiconFeature, MostFrequentWords, PunctTypography,
-    Readability, RegisterClash, Richness, SentenceStats, SurprisalLm,
+    BiberTier1, CharNgrams, ComparisonFrames, DeviceRates, LexiconFeature, MostFrequentWords,
+    NormDensity, PunctTypography, Readability, RegisterClash, Richness, SentenceStats, SurprisalLm,
 };
 use handprint_core::reference::calibrate::CalibrationConfig;
 use handprint_core::verify::{impostor_pool, Thresholds, VerifyConfig};
@@ -109,6 +109,18 @@ fn fit(command: Command) -> Result<i32> {
                 builder.feature(ComparisonFrames::default().with_frozen(frozen))
             }
             FeatureArg::Formality => builder.feature(RegisterClash::default()),
+            FeatureArg::Devices => builder.feature(DeviceRates::default()),
+            FeatureArg::Concreteness => builder.feature(NormDensity::new(
+                handprint_core::feature::packs::concreteness_stub(),
+            )),
+            FeatureArg::Hyperbole => builder.feature(builtin_pack_feature("hyperbole", true)?),
+            FeatureArg::Marketing => builder.feature(builtin_pack_feature("marketing-eval", true)?),
+            FeatureArg::MarketingSlop => {
+                builder.feature(builtin_pack_feature("marketing-slop", false)?)
+            }
+            FeatureArg::Epistemic => {
+                builder.feature(builtin_pack_feature("epistemic-certainty", true)?)
+            }
         };
     }
 

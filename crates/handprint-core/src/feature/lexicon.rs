@@ -77,8 +77,14 @@ pub struct Term {
 /// A multi-token pattern.
 ///
 /// The pattern language is deliberately tiny: literal words, `*` for a gap of
-/// one to four tokens, and `{a|b|c}` for alternatives. Anything needing more
-/// than that belongs in a real linter rule, not a lexicon.
+/// one to four tokens, `#` for a single numeric token, and `{a|b|c}` for
+/// alternatives. Anything needing more than that belongs in a real linter rule,
+/// not a lexicon.
+///
+/// `#` exists because the pressure phrasings the dark-patterns literature vets
+/// are numeric by nature — "only 3 left", "trusted by 40000 teams", "join 12000
+/// others" — and without it those become either unexpressible or a `*` gap wide
+/// enough to match anything.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Phrase {
     /// Stable identifier, unique within the pack.
@@ -261,7 +267,12 @@ struct Rule {
 enum Part {
     Lit(String),
     OneOf(Vec<String>),
-    Gap { min: usize, max: usize },
+    Gap {
+        min: usize,
+        max: usize,
+    },
+    /// One numeric token.
+    Number,
 }
 
 /// Structural rules that need no word list.
@@ -329,6 +340,8 @@ fn parse_pattern(pattern: &str) -> Result<Vec<Part>> {
     for piece in pattern.split_whitespace() {
         if piece == "*" {
             parts.push(Part::Gap { min: 1, max: 4 });
+        } else if piece == "#" {
+            parts.push(Part::Number);
         } else if piece.starts_with('{') && !piece.ends_with('}') {
             // Alternatives are matched token by token, so they cannot contain
             // spaces. Catching it here beats silently never matching.
@@ -622,6 +635,27 @@ impl FittedLexicon {
     }
 }
 
+/// Whether a token form reads as a number.
+///
+/// Digits, with separators and an optional ordinal or unit suffix allowed:
+/// `3`, `40,000`, `1.5`, `3rd`, `50%`. A word with a digit buried inside it
+/// (`v2beta`) is not a number.
+pub(crate) fn is_numeric(form: &str) -> bool {
+    let mut chars = form.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    if !first.is_ascii_digit() {
+        return false;
+    }
+    form.chars()
+        .all(|c| c.is_ascii_digit() || matches!(c, ',' | '.' | '%' | 'k' | 'm' | 'b'))
+        || form
+            .trim_end_matches(|c: char| c.is_ascii_alphabetic())
+            .chars()
+            .all(|c| c.is_ascii_digit() || matches!(c, ',' | '.'))
+}
+
 /// Match `parts` against `forms` starting at `start`, returning the exclusive
 /// end index on success.
 fn match_at(parts: &[Part], forms: &[&str], start: usize) -> Option<usize> {
@@ -640,6 +674,17 @@ fn match_at(parts: &[Part], forms: &[&str], start: usize) -> Option<usize> {
             Part::OneOf(options) => {
                 let form = forms.get(i)?;
                 if options.iter().any(|o| o == form) {
+                    go(&parts[1..], forms, i + 1)
+                } else {
+                    None
+                }
+            }
+            Part::Number => {
+                // Numeric by surface form rather than by token kind: the
+                // matcher only ever sees normalized forms, and "40,000" and
+                // "3rd" both read as numbers to a human writing a pack.
+                let form = forms.get(i)?;
+                if is_numeric(form) {
                     go(&parts[1..], forms, i + 1)
                 } else {
                     None
@@ -1493,6 +1538,24 @@ mod tests {
             v.get(i.get("lex:ai-slop:phrase.plays_a_role").unwrap()),
             0.0
         );
+    }
+
+    #[test]
+    fn the_number_wildcard_matches_a_numeric_token_only() {
+        assert!(is_numeric("3"));
+        assert!(is_numeric("40,000"));
+        assert!(is_numeric("1.5"));
+        assert!(is_numeric("3rd"));
+        assert!(is_numeric("50%"));
+        assert!(!is_numeric("three"));
+        assert!(!is_numeric("v2beta"));
+        assert!(!is_numeric(""));
+
+        let parts = parse_pattern("only # left").unwrap();
+        assert_eq!(parts.len(), 3);
+        assert!(matches!(parts[1], Part::Number));
+        assert_eq!(match_at(&parts, &["only", "3", "left"], 0), Some(3));
+        assert_eq!(match_at(&parts, &["only", "a", "few", "left"], 0), None);
     }
 
     #[test]

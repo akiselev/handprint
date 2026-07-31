@@ -100,6 +100,19 @@ pub enum FeatureArg {
     /// Within-sentence formality variance and register clash, using the
     /// bundled closed-class proxy unless a norm pack is supplied.
     Formality,
+    /// Rhetorical device rates and the marketing-structural family.
+    Devices,
+    /// Concreteness density against the bundled demonstration table. Supply
+    /// the real norms with a NormDensity feature in a library pipeline.
+    Concreteness,
+    /// The bundled hyperbole pack, as category rates.
+    Hyperbole,
+    /// The bundled advertising-register pack, as category rates.
+    Marketing,
+    /// The bundled AI-marketing-slop pack.
+    MarketingSlop,
+    /// The bundled gonzo epistemic-certainty pack, as category rates.
+    Epistemic,
 }
 
 /// Which threshold profile to hold a draft to.

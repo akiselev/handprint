@@ -30,10 +30,16 @@ use super::lexicon::{LexiconPack, PackSource, Phrase, Severity, Term};
 mod cliche_similes;
 mod doc_style;
 mod hyland;
+mod marketing;
+mod misc;
 mod norms;
 mod tech_voice;
+mod wordnet;
 
-pub use norms::heylighen_formality;
+pub use norms::{concreteness_stub, heylighen_formality, vader_boosters};
+pub use wordnet::{
+    emotion_adjectives, senses_per_word, wordnet_antonyms, wordnet_source, WORDNET_VERSION,
+};
 
 /// Every bundled pack's name, in a stable order.
 pub const BUILTIN_PACKS: &[&str] = &[
@@ -42,6 +48,12 @@ pub const BUILTIN_PACKS: &[&str] = &[
     "doc-style",
     "tech-voice",
     "cliche-similes",
+    "hyperbole",
+    "marketing-eval",
+    "marketing-slop",
+    "wiki-ai-signs",
+    "epistemic-certainty",
+    "drug-lexicon",
 ];
 
 /// Look a bundled lexicon pack up by name.
@@ -52,6 +64,12 @@ pub fn builtin(name: &str) -> Option<LexiconPack> {
         "doc-style" => doc_style::pack(),
         "tech-voice" => tech_voice::pack(),
         "cliche-similes" => cliche_similes::pack(),
+        "hyperbole" => misc::hyperbole_pack(),
+        "marketing-eval" => marketing::eval_pack(),
+        "marketing-slop" => marketing::slop_pack(),
+        "wiki-ai-signs" => misc::wiki_ai_pack(),
+        "epistemic-certainty" => misc::epistemic_pack(),
+        "drug-lexicon" => misc::drug_pack(),
         _ => return None,
     })
 }
