@@ -469,6 +469,26 @@ pub enum Command {
         max_code_share: f64,
     },
 
+    /// Prepare a Project Gutenberg corpus: strip boilerplate, chapterize.
+    ///
+    /// Reads `in/{author}/*.txt` and writes `out/{author}/{book}-chNN.md`,
+    /// one document per chapter — which is what makes within-author variance,
+    /// and therefore a same-author calibration, measurable at all.
+    Gutenberg {
+        /// Directory of author subdirectories holding raw Gutenberg texts.
+        #[arg(long = "in")]
+        input: PathBuf,
+        /// Where to write the chapterized corpus.
+        #[arg(short, long)]
+        out: PathBuf,
+        /// Merge chapters shorter than this many words into the previous one.
+        #[arg(long, default_value_t = 1500)]
+        min_words: usize,
+        /// Also write a JSONL record file alongside the chapters.
+        #[arg(long)]
+        jsonl: Option<PathBuf>,
+    },
+
     /// Hacker News corpus tools.
     Hn {
         #[command(subcommand)]

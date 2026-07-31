@@ -21,12 +21,14 @@
 #![forbid(unsafe_code)]
 
 pub mod agent;
+pub mod gutenberg;
 pub mod hn;
 pub mod jsonl;
 pub mod record;
 pub mod strip;
 
 pub use agent::{AgentConfig, Extraction};
+pub use gutenberg::{Book, Chapter, GutenbergConfig, PdBasis};
 pub use record::{to_corpus, Record, Register};
 pub use strip::{strip, StripConfig, Stripped};
 

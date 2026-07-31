@@ -37,6 +37,7 @@ pub fn dispatch(command: Command) -> Result<i32> {
         Command::Explain { .. } => explain(command),
         Command::Critique { .. } => critique(command),
         Command::Extract { .. } => extract(command),
+        Command::Gutenberg { .. } => gutenberg(command),
         Command::Hn { command } => hn(command),
         Command::Pack { command } => pack(command),
     }
@@ -1132,6 +1133,93 @@ fn extract(command: Command) -> Result<i32> {
         "These transcripts are private data. Any vocabulary derived from them must go through \
          privacy culling (`handprint contrast --private`) and a manual review before it leaves \
          this machine."
+    );
+    Ok(0)
+}
+
+/// Prepare a Project Gutenberg corpus.
+fn gutenberg(command: Command) -> Result<i32> {
+    let Command::Gutenberg {
+        input,
+        out,
+        min_words,
+        jsonl,
+    } = command
+    else {
+        unreachable!()
+    };
+
+    let config = handprint_data::GutenbergConfig {
+        min_words,
+        ..Default::default()
+    };
+    let mut books = 0usize;
+    let mut chapters = 0usize;
+    let mut unstripped: Vec<String> = Vec::new();
+    let mut records: Vec<handprint_data::Record> = Vec::new();
+
+    let mut authors: Vec<PathBuf> = std::fs::read_dir(&input)
+        .with_context(|| format!("reading {}", input.display()))?
+        .filter_map(|e| e.ok().map(|e| e.path()))
+        .filter(|p| p.is_dir())
+        .collect();
+    if authors.is_empty() {
+        bail!(
+            "{} has no author subdirectories; the expected layout is in/{{author}}/*.txt",
+            input.display()
+        );
+    }
+    authors.sort();
+
+    for author_dir in authors {
+        let author = author_dir
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("unknown")
+            .to_owned();
+        let mut files: Vec<PathBuf> = std::fs::read_dir(&author_dir)
+            .with_context(|| format!("reading {}", author_dir.display()))?
+            .filter_map(|e| e.ok().map(|e| e.path()))
+            .filter(|p| p.is_file())
+            .collect();
+        files.sort();
+
+        for file in files {
+            let book = handprint_data::gutenberg::prepare(&file, &author, &config)?;
+            if !book.stripped {
+                // Never silently. An unstripped file teaches the reference
+                // Project Gutenberg's licence text and reports it as voice.
+                unstripped.push(format!("{}", file.display()));
+            }
+            handprint_data::gutenberg::write_chapters(&book, &out)?;
+            records.extend(handprint_data::gutenberg::to_records(&book));
+            chapters += book.chapters.len();
+            books += 1;
+        }
+    }
+
+    println!(
+        "prepared {books} book(s) into {chapters} chapter document(s) under {}",
+        out.display()
+    );
+    if let Some(path) = jsonl {
+        handprint_data::jsonl::write(&path, &records)?;
+        println!("wrote {}", path.display());
+    }
+    if !unstripped.is_empty() {
+        eprintln!(
+            "warning: no Project Gutenberg markers found in {} file(s); their licence \
+             boilerplate is still in the corpus and will be learned as style. Check:",
+            unstripped.len()
+        );
+        for path in unstripped.iter().take(10) {
+            eprintln!("  {path}");
+        }
+    }
+    println!(
+        "\nUS public domain is not worldwide public domain. Fitted references and \
+         calibration data are data-only and ship with a stated pd_basis; transcripts and \
+         quoted passages ship only where the text is public domain worldwide."
     );
     Ok(0)
 }
