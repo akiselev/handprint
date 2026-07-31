@@ -175,7 +175,14 @@ pub struct FittedSentence {
 
 /// Markdown rate dimensions, in emission order.
 const MARKDOWN_DIMS: &[&str] = &[
-    "heading", "bullet", "numbered", "quote", "code_fence", "inline_code", "bold", "italic",
+    "heading",
+    "bullet",
+    "numbered",
+    "quote",
+    "code_fence",
+    "inline_code",
+    "bold",
+    "italic",
     "table_row",
 ];
 
@@ -327,14 +334,30 @@ impl FittedFeature for FittedSentence {
             out.set(self.len_variance, variance);
             // Fano factor: variance-to-mean ratio. A Poisson process gives 1;
             // uniform sentence lengths drive it toward 0.
-            out.set(self.len_fano, if mean > 0.0 { variance / mean } else { 0.0 });
+            out.set(
+                self.len_fano,
+                if mean > 0.0 { variance / mean } else { 0.0 },
+            );
             out.set(
                 self.len_cv,
-                if mean > 0.0 { variance.sqrt() / mean } else { 0.0 },
+                if mean > 0.0 {
+                    variance.sqrt() / mean
+                } else {
+                    0.0
+                },
             );
-            out.set(self.len_p10, util::quantile_sorted(&lengths, 0.10).unwrap_or(0.0));
-            out.set(self.len_p50, util::quantile_sorted(&lengths, 0.50).unwrap_or(0.0));
-            out.set(self.len_p90, util::quantile_sorted(&lengths, 0.90).unwrap_or(0.0));
+            out.set(
+                self.len_p10,
+                util::quantile_sorted(&lengths, 0.10).unwrap_or(0.0),
+            );
+            out.set(
+                self.len_p50,
+                util::quantile_sorted(&lengths, 0.50).unwrap_or(0.0),
+            );
+            out.set(
+                self.len_p90,
+                util::quantile_sorted(&lengths, 0.90).unwrap_or(0.0),
+            );
         } else {
             for sym in self.dispersion_dims() {
                 out.mark_missing(sym);
@@ -522,4 +545,3 @@ mod tests {
         assert!(value(structured, "md:bullet_rate") > 0.0);
     }
 }
-

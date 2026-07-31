@@ -5,6 +5,8 @@
 //! hashmap for the pairwise operations calibration does tens of thousands of
 //! times. `merge_vs_hashmap` answers it directly.
 
+#![allow(missing_docs)] // criterion_group! generates undocumented items
+
 use std::collections::HashMap;
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
@@ -94,5 +96,50 @@ fn profile_throughput(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, merge_vs_hashmap, dense_projection, profile_throughput);
+criterion_group!(
+    benches,
+    merge_vs_hashmap,
+    dense_projection,
+    profile_throughput,
+    per_family
+);
 criterion_main!(benches);
+
+/// Per-family throughput, to locate the bottleneck rather than guess at it.
+fn per_family(c: &mut Criterion) {
+    let paragraph = "I looked at the failing test again and the problem is in the tokenizer: \
+                     it treats the apostrophe as a word boundary, so contractions split in two. \
+                     The fix is to fold the curly apostrophe first, which keeps the span mapping \
+                     intact.\n\n";
+    let mut corpus = Corpus::new();
+    for i in 0..20 {
+        corpus.add(format!("a{i}"), [Document::new(paragraph.repeat(4))]);
+    }
+    let document = Document::new(paragraph.repeat(200));
+    let bytes = document.text().len() as u64;
+
+    let mut group = c.benchmark_group("family");
+    group.throughput(Throughput::Bytes(bytes));
+    let cases: Vec<(&str, handprint_core::FeatureSpec)> = vec![
+        ("punct", PunctTypography::default().into()),
+        ("sentence", SentenceStats::default().into()),
+        ("mfw", MostFrequentWords::default().top(500).into()),
+        ("ngrams", CharNgrams::new(3..=4).top(1000).into()),
+    ];
+    for (name, spec) in cases {
+        let reference = Pipeline::builder()
+            .feature(spec)
+            .name("bench")
+            .exemplars(0)
+            .fit(&corpus)
+            .expect("fit");
+        group.bench_function(name, |bencher| {
+            bencher.iter(|| reference.profile(&document))
+        });
+    }
+    // Tokenization alone, as the floor everything else builds on.
+    group.bench_function("analyze_only", |bencher| {
+        bencher.iter(|| document.analyze(&handprint_core::Tokenizer::default()))
+    });
+    group.finish();
+}

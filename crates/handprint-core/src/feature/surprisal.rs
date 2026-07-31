@@ -149,7 +149,14 @@ pub struct SurprisalStats {
 
 /// Statistic names, in emission order.
 const STATS: &[&str] = &[
-    "mean", "stddev", "variance", "fano", "p10", "p90", "autocorr", "low_share",
+    "mean",
+    "stddev",
+    "variance",
+    "fano",
+    "p10",
+    "p90",
+    "autocorr",
+    "low_share",
 ];
 
 /// Fitted [`SurprisalLm`].

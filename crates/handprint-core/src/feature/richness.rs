@@ -108,7 +108,9 @@ impl Feature for Richness {
         let mattr = (self.mattr_window > 0)
             .then(|| push(interner, format!("rich:mattr{}", self.mattr_window)));
         let yule = self.yule.then(|| push(interner, "rich:yule_k".into()));
-        let simpson = self.simpson.then(|| push(interner, "rich:simpson_d".into()));
+        let simpson = self
+            .simpson
+            .then(|| push(interner, "rich:simpson_d".into()));
 
         if dims.is_empty() {
             return Err(Error::InvalidConfig {
@@ -310,7 +312,10 @@ mod tests {
     #[test]
     fn mattr_is_missing_below_its_window() {
         // 60 tokens, window 100 → missing, and definitively not whole-doc TTR.
-        let text = (0..60).map(|i| format!("w{i}")).collect::<Vec<_>>().join(" ");
+        let text = (0..60)
+            .map(|i| format!("w{i}"))
+            .collect::<Vec<_>>()
+            .join(" ");
         let (v, i) = transform(Richness::default(), &text);
         let sym = i.get("rich:mattr100").unwrap();
         assert!(v.is_missing(sym));
@@ -322,7 +327,12 @@ mod tests {
     #[test]
     fn everything_is_missing_below_the_floor() {
         let (v, i) = transform(Richness::default(), "only a handful of words here");
-        for dim in ["rich:mtld", "rich:mattr100", "rich:yule_k", "rich:simpson_d"] {
+        for dim in [
+            "rich:mtld",
+            "rich:mattr100",
+            "rich:yule_k",
+            "rich:simpson_d",
+        ] {
             assert!(v.is_missing(i.get(dim).unwrap()), "{dim}");
         }
     }

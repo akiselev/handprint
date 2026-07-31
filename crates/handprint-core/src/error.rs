@@ -27,7 +27,9 @@ pub enum Error {
     },
 
     /// A metric was asked for input it cannot consume (invariant #5).
-    #[error("metric {metric} requires {required} input but the reference cannot provide it: {detail}")]
+    #[error(
+        "metric {metric} requires {required} input but the reference cannot provide it: {detail}"
+    )]
     ScalingUnavailable {
         /// Metric name.
         metric: &'static str,

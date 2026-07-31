@@ -9,7 +9,7 @@
 //! Transcripts are local by default and stay that way. Nothing here uploads
 //! anything. A vocabulary derived from them must go through the
 //! document-frequency cull in
-//! [`handprint_core::contrast`](handprint_core::contrast) — which turns on
+//! [`handprint_core::contrast`] — which turns on
 //! automatically for a corpus flagged
 //! [`private`](handprint_core::Corpus::private) — and then a human review,
 //! before any artifact leaves the machine. Project names, paths and colleagues'
@@ -72,8 +72,7 @@ impl Extraction {
 }
 
 /// Options shared by the transcript extractors.
-#[derive(Debug, Clone, PartialEq)]
-#[derive(Default)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct AgentConfig {
     /// How code is removed.
     pub strip: StripConfig,
@@ -83,7 +82,6 @@ pub struct AgentConfig {
     /// mixing the two produces a profile of neither.
     pub include_reasoning: bool,
 }
-
 
 /// The default location of Claude Code transcripts.
 pub fn claude_code_root() -> Option<PathBuf> {
@@ -152,7 +150,10 @@ pub fn parse_claude_code(jsonl: &str, source: &str, config: &AgentConfig) -> Ext
             .and_then(Value::as_str)
             .unwrap_or("unknown");
         let ts = value.get("timestamp").and_then(Value::as_str);
-        let Some(content) = message.and_then(|m| m.get("content")).and_then(Value::as_array) else {
+        let Some(content) = message
+            .and_then(|m| m.get("content"))
+            .and_then(Value::as_array)
+        else {
             continue;
         };
         for block in content {
@@ -253,7 +254,9 @@ pub fn parse_codex(jsonl: &str, source: &str, config: &AgentConfig) -> Extractio
             else {
                 continue;
             };
-            push_record(&mut out, raw, source, &model, ts, register, &session, config);
+            push_record(
+                &mut out, raw, source, &model, ts, register, &session, config,
+            );
         }
     }
     out
@@ -354,7 +357,10 @@ mod tests {
         assert_eq!(e.records[1].model.as_deref(), Some("claude-fable-5"));
         assert_eq!(e.records[0].register, Register::AgentProse);
         assert_eq!(e.records[0].ts.as_deref(), Some("2026-07-30T10:00:00Z"));
-        assert_eq!(e.records[0].meta.get("session").map(String::as_str), Some("sess-abc"));
+        assert_eq!(
+            e.records[0].meta.get("session").map(String::as_str),
+            Some("sess-abc")
+        );
         // Code is gone; prose is not.
         assert!(!e.records[0].text.contains("normalize(input)"));
         assert!(e.records[0].text.contains("apostrophe"));
@@ -373,7 +379,10 @@ mod tests {
     #[test]
     fn reasoning_is_opt_in_and_labelled_separately() {
         let default = parse_claude_code(CLAUDE_FIXTURE, "/x/s.jsonl", &AgentConfig::default());
-        assert!(default.records.iter().all(|r| r.register == Register::AgentProse));
+        assert!(default
+            .records
+            .iter()
+            .all(|r| r.register == Register::AgentProse));
 
         let with_reasoning = parse_claude_code(
             CLAUDE_FIXTURE,
@@ -461,7 +470,9 @@ mod tests {
 
     #[test]
     fn a_missing_directory_is_an_error_not_a_panic() {
-        assert!(extract_claude_code(Path::new("/nonexistent/handprint"), &AgentConfig::default())
-            .is_err());
+        assert!(
+            extract_claude_code(Path::new("/nonexistent/handprint"), &AgentConfig::default())
+                .is_err()
+        );
     }
 }

@@ -337,8 +337,16 @@ mod tests {
     fn minmax_equals_one_minus_ruzicka_similarity() {
         let a: [f64; 3] = [0.5, 0.3, 0.2];
         let b: [f64; 3] = [0.1, 0.6, 0.3];
-        let min_sum: f64 = a.iter().zip(b.iter()).map(|(x, y): (&f64, &f64)| x.min(*y)).sum();
-        let max_sum: f64 = a.iter().zip(b.iter()).map(|(x, y): (&f64, &f64)| x.max(*y)).sum();
+        let min_sum: f64 = a
+            .iter()
+            .zip(b.iter())
+            .map(|(x, y): (&f64, &f64)| x.min(*y))
+            .sum();
+        let max_sum: f64 = a
+            .iter()
+            .zip(b.iter())
+            .map(|(x, y): (&f64, &f64)| x.max(*y))
+            .sum();
         approx(Metric::MinMax.distance(&a, &b), 1.0 - min_sum / max_sum);
     }
 

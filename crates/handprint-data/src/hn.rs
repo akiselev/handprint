@@ -68,7 +68,10 @@ pub fn parse_page(json: &str, cutoff: Option<i64>) -> Result<Page, crate::Error>
                 continue;
             }
         }
-        let author = hit.get("author").and_then(Value::as_str).unwrap_or("unknown");
+        let author = hit
+            .get("author")
+            .and_then(Value::as_str)
+            .unwrap_or("unknown");
         let mut record = Record::new(clean_html(text), "hn:algolia", Register::ForumComment)
             .with_author(author)
             .with_meta(
@@ -180,7 +183,10 @@ fn decode_entity(entity: &str) -> String {
         "hellip" | "#8230" => "\u{2026}".into(),
         other => {
             // Numeric entities we do not special-case.
-            if let Some(hex) = other.strip_prefix("#x").or_else(|| other.strip_prefix("#X")) {
+            if let Some(hex) = other
+                .strip_prefix("#x")
+                .or_else(|| other.strip_prefix("#X"))
+            {
                 if let Ok(n) = u32::from_str_radix(hex, 16) {
                     if let Some(c) = char::from_u32(n) {
                         return c.to_string();
@@ -283,19 +289,18 @@ mod net {
 
         fn fetch_page(&self, user: &str, page: usize) -> crate::Result<String> {
             let cache_path = self.config.cache.as_ref().map(|dir| {
-                dir.join(format!("hn-{user}-{page}-{}.json", self.config.hits_per_page))
+                dir.join(format!(
+                    "hn-{user}-{page}-{}.json",
+                    self.config.hits_per_page
+                ))
             });
             if let Some(path) = &cache_path {
                 if let Ok(cached) = std::fs::read_to_string(path) {
                     return Ok(cached);
                 }
             }
-            let url = super::user_comments_url(
-                &self.config.base,
-                user,
-                page,
-                self.config.hits_per_page,
-            );
+            let url =
+                super::user_comments_url(&self.config.base, user, page, self.config.hits_per_page);
             let body = self
                 .agent
                 .get(&url)
@@ -354,14 +359,20 @@ mod tests {
         assert!(page.has_more());
         assert_eq!(page.records[0].author.as_deref(), Some("someone"));
         assert_eq!(page.records[0].register, Register::ForumComment);
-        assert_eq!(page.records[0].meta.get("id").map(String::as_str), Some("1001"));
+        assert_eq!(
+            page.records[0].meta.get("id").map(String::as_str),
+            Some("1001")
+        );
     }
 
     #[test]
     fn the_cutoff_drops_post_chatgpt_comments() {
         let page = parse_page(FIXTURE, Some(DEFAULT_CUTOFF)).unwrap();
         assert_eq!(page.records.len(), 1, "{:?}", page.records);
-        assert_eq!(page.records[0].meta.get("id").map(String::as_str), Some("1001"));
+        assert_eq!(
+            page.records[0].meta.get("id").map(String::as_str),
+            Some("1001")
+        );
     }
 
     #[test]

@@ -246,7 +246,11 @@ pub fn rolling(
     let mut out = Vec::new();
     let mut start_tok = 0usize;
     while start_tok + window_tokens <= ends.len() {
-        let start = if start_tok == 0 { 0 } else { ends[start_tok - 1] };
+        let start = if start_tok == 0 {
+            0
+        } else {
+            ends[start_tok - 1]
+        };
         let end = ends[start_tok + window_tokens - 1];
         let profile = reference.profile(&crate::text::Document::new(&text[start..end]));
         let distance = reference.compare_with(&profile, target, metric)?.distance;
@@ -376,7 +380,9 @@ mod tests {
         let mut corpus = Corpus::new();
         corpus.add(
             "ai",
-            (0..12).map(|i| Document::new(ai_text(i))).collect::<Vec<_>>(),
+            (0..12)
+                .map(|i| Document::new(ai_text(i)))
+                .collect::<Vec<_>>(),
         );
         corpus.add(
             "human",
@@ -400,8 +406,8 @@ mod tests {
     fn classification_picks_the_right_side() {
         let (reference, ai, human) = setup();
         let draft = reference.profile(&Document::new(ai_text(99)));
-        let report = ContrastReport::classify(&reference, &draft, &ai, &human, Metric::CosineDelta)
-            .unwrap();
+        let report =
+            ContrastReport::classify(&reference, &draft, &ai, &human, Metric::CosineDelta).unwrap();
         assert_eq!(report.closer, Side::A, "{report:?}");
         assert!(report.margin > 0.0);
 
@@ -433,8 +439,8 @@ mod tests {
     fn the_ai_pull_is_explained_by_the_expected_families() {
         let (reference, ai, human) = setup();
         let draft = reference.profile(&Document::new(ai_text(3)));
-        let report = ContrastReport::classify(&reference, &draft, &ai, &human, Metric::CosineDelta)
-            .unwrap();
+        let report =
+            ContrastReport::classify(&reference, &draft, &ai, &human, Metric::CosineDelta).unwrap();
         let names: Vec<&str> = report
             .top(20, Side::A)
             .iter()
@@ -470,8 +476,8 @@ mod tests {
     fn delta_to_reports_the_move_needed() {
         let (reference, ai, human) = setup();
         let draft = reference.profile(&Document::new(ai_text(1)));
-        let report = ContrastReport::classify(&reference, &draft, &ai, &human, Metric::CosineDelta)
-            .unwrap();
+        let report =
+            ContrastReport::classify(&reference, &draft, &ai, &human, Metric::CosineDelta).unwrap();
         let tapestry = report
             .pulls
             .iter()

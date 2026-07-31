@@ -263,7 +263,10 @@ pub fn verify(
     let n_dims = reference.dims().len();
 
     let query_v = reference.vector_in(query, space);
-    let target_v: Vec<Vec<f64>> = target.iter().map(|p| reference.vector_in(p, space)).collect();
+    let target_v: Vec<Vec<f64>> = target
+        .iter()
+        .map(|p| reference.vector_in(p, space))
+        .collect();
     let impostor_v: Vec<Vec<f64>> = impostors
         .iter()
         .map(|p| reference.vector_in(p, space))
@@ -418,7 +421,14 @@ mod tests {
         let target = vec![reference.profile_aggregate(&docs[1..])];
         let impostors = impostor_pool(&reference, &corpus, &["a0"]);
 
-        let hit = verify(&reference, &query, &target, &impostors, &VerifyConfig::default()).unwrap();
+        let hit = verify(
+            &reference,
+            &query,
+            &target,
+            &impostors,
+            &VerifyConfig::default(),
+        )
+        .unwrap();
 
         let other = corpus.author(&"a7".into()).unwrap();
         let wrong_target = vec![reference.profile_aggregate(other)];
@@ -469,7 +479,10 @@ mod tests {
             .collect();
         let spread = scores.iter().cloned().fold(f64::MIN, f64::max)
             - scores.iter().cloned().fold(f64::MAX, f64::min);
-        assert!(spread < 0.15, "scores varied too much across seeds: {scores:?}");
+        assert!(
+            spread < 0.15,
+            "scores varied too much across seeds: {scores:?}"
+        );
     }
 
     #[test]
@@ -479,7 +492,16 @@ mod tests {
         let query = reference.profile(&docs[0]);
         let target = vec![reference.profile_aggregate(&docs[1..])];
         let impostors = impostor_pool(&reference, &corpus, &["a1"]);
-        let run = || verify(&reference, &query, &target, &impostors, &VerifyConfig::default()).unwrap();
+        let run = || {
+            verify(
+                &reference,
+                &query,
+                &target,
+                &impostors,
+                &VerifyConfig::default(),
+            )
+            .unwrap()
+        };
         assert_eq!(run(), run());
     }
 
@@ -549,8 +571,22 @@ mod tests {
         let query = reference.profile(&docs[0]);
         let target = vec![reference.profile(&docs[1])];
         let impostors = impostor_pool(&reference, &corpus, &["a0"]);
-        assert!(verify(&reference, &query, &[], &impostors, &VerifyConfig::default()).is_err());
-        assert!(verify(&reference, &query, &target, &impostors[..1], &VerifyConfig::default()).is_err());
+        assert!(verify(
+            &reference,
+            &query,
+            &[],
+            &impostors,
+            &VerifyConfig::default()
+        )
+        .is_err());
+        assert!(verify(
+            &reference,
+            &query,
+            &target,
+            &impostors[..1],
+            &VerifyConfig::default()
+        )
+        .is_err());
         assert!(verify(
             &reference,
             &query,

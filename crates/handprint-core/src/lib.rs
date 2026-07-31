@@ -10,9 +10,9 @@ pub mod explain;
 pub mod feature;
 pub mod reference;
 pub mod text;
-pub mod verify;
-pub mod vector;
 pub(crate) mod util;
+pub mod vector;
+pub mod verify;
 
 pub use compare::{Contribution, Metric};
 pub use contrast::{ContrastConfig, ContrastModel, ContrastSet, Prior, Side, Variance};
@@ -26,8 +26,8 @@ pub use reference::{
     Provenance, Reference,
 };
 pub use text::{Analysis, Document, Span, Tokenizer};
-pub use verify::{verify, VerifyConfig, VerifyScore, Verdict};
 pub use vector::{FeatureVector, Interner, Symbol, VectorBuilder};
+pub use verify::{verify, Verdict, VerifyConfig, VerifyScore};
 
 /// The crate version, embedded in every serialized artifact and report so a
 /// consumer can tell which code produced a number.

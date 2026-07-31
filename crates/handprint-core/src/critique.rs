@@ -28,7 +28,7 @@
 //!
 //! # Which metric a mode needs
 //!
-//! [`Metric::CosineDelta`](crate::Metric::CosineDelta) is the right default for
+//! [`Metric::CosineDelta`] is the right default for
 //! *comparing two texts against a shared background*, and it is wrong for
 //! corpus-mimic. When the reference is fitted on the very corpus being matched,
 //! a typical document of that corpus has a z-score of roughly zero on every
@@ -39,7 +39,7 @@
 //!
 //! The one-class question "how far from typical is this draft?" is a question
 //! about **magnitude**, not angle, so [`Critic::corpus_mimic`] uses
-//! [`Metric::BurrowsDelta`](crate::Metric::BurrowsDelta) — mean absolute
+//! [`Metric::BurrowsDelta`] — mean absolute
 //! z-difference, which against a corpus-typical target reduces to "how many
 //! standard deviations from ordinary, averaged over dimensions". Contrast mode
 //! keeps the reference's own metric, because there it really is a two-class
@@ -268,7 +268,9 @@ impl CritiqueReport {
             out.push_str("\n  ! canary tripped: reported features improved while the held-out family worsened");
         }
         if !self.guards.drift_ok {
-            out.push_str("\n  ! content drift: the rewrite has moved too far from the original draft");
+            out.push_str(
+                "\n  ! content drift: the rewrite has moved too far from the original draft",
+            );
         }
         for finding in &self.findings {
             out.push_str(&format!(
@@ -539,7 +541,10 @@ impl<'a> Critic<'a> {
     /// Review a draft, advancing the loop by one iteration.
     pub fn review(&mut self, text: &str) -> Result<CritiqueReport> {
         self.iteration += 1;
-        let metric = self.config.metric.unwrap_or_else(|| self.reference.metric());
+        let metric = self
+            .config
+            .metric
+            .unwrap_or_else(|| self.reference.metric());
         let doc = Document::new(text);
         let profile = self.reference.profile_tracked(&doc);
         if self.targets.is_empty() {
@@ -553,7 +558,9 @@ impl<'a> Critic<'a> {
         let mut scored: Vec<(f64, usize)> = Vec::with_capacity(self.targets.len());
         for (i, target) in self.targets.iter().enumerate() {
             scored.push((
-                self.reference.compare_with(&profile, target, metric)?.distance,
+                self.reference
+                    .compare_with(&profile, target, metric)?
+                    .distance,
                 i,
             ));
         }
@@ -565,7 +572,11 @@ impl<'a> Critic<'a> {
 
         // The gate runs on a capped distance so that no single dimension can
         // buy a pass by being tuned into exact agreement.
-        let capped = cap_distance(&contributions, comparison.offset(), self.config.max_dim_share);
+        let capped = cap_distance(
+            &contributions,
+            comparison.offset(),
+            self.config.max_dim_share,
+        );
         let assessment = self
             .reference
             .calibration()
@@ -1081,12 +1092,12 @@ fn message_for(
         format!(" - {verb} from zero")
     };
     match unit {
-        Unit::PerThousandTokens => format!(
-            "{observed:.2} per 1k tokens vs reference band {lo:.2}-{hi:.2}{change}"
-        ),
-        Unit::PerHundredSentences => format!(
-            "{observed:.2} per 100 sentences vs reference band {lo:.2}-{hi:.2}{change}"
-        ),
+        Unit::PerThousandTokens => {
+            format!("{observed:.2} per 1k tokens vs reference band {lo:.2}-{hi:.2}{change}")
+        }
+        Unit::PerHundredSentences => {
+            format!("{observed:.2} per 100 sentences vs reference band {lo:.2}-{hi:.2}{change}")
+        }
         Unit::Fraction => format!(
             "{:.1}% vs reference band {:.1}%-{:.1}%{change}",
             observed * 100.0,
@@ -1200,13 +1211,7 @@ mod tests {
             let mut background = Corpus::new();
             let all: Vec<&str> = HUMAN_BITS.iter().chain(SLOP_BITS).copied().collect();
             for a in 0..12 {
-                let slice: Vec<&str> = all
-                    .iter()
-                    .cycle()
-                    .skip(a * 3)
-                    .take(6)
-                    .copied()
-                    .collect();
+                let slice: Vec<&str> = all.iter().cycle().skip(a * 3).take(6).copied().collect();
                 let docs: Vec<Document> = (0..5)
                     .map(|d| {
                         Document::new(compose(
@@ -1246,7 +1251,11 @@ mod tests {
         assert!(!report.findings.is_empty());
         assert!(report.findings.len() <= report.findings.capacity());
         for finding in &report.findings {
-            assert!(!finding.id.contains(':'), "ids are dot-namespaced: {}", finding.id);
+            assert!(
+                !finding.id.contains(':'),
+                "ids are dot-namespaced: {}",
+                finding.id
+            );
             assert!(finding.target_band[0] <= finding.target_band[1]);
             assert!(!finding.message.is_empty());
             match finding.direction {
@@ -1285,11 +1294,7 @@ mod tests {
         for finding in &word_findings {
             assert_eq!(finding.direction, Direction::Reduce);
             assert_eq!(finding.severity, Severity::High);
-            assert!(
-                !finding.spans.is_empty(),
-                "{} carried no spans",
-                finding.id
-            );
+            assert!(!finding.spans.is_empty(), "{} carried no spans", finding.id);
             // Every span must slice the submitted text back to the term itself,
             // which is what lets an agent patch by byte offset.
             let term = finding.id.rsplit('.').next().unwrap();
@@ -1321,8 +1326,10 @@ mod tests {
         }
         // The specific hits that a rewrite can act on are still there.
         assert!(
-            report.findings.iter().any(|f| f.id.contains(".word.")
-                || f.id.contains(".phrase.")),
+            report
+                .findings
+                .iter()
+                .any(|f| f.id.contains(".word.") || f.id.contains(".phrase.")),
             "{:?}",
             report.findings.iter().map(|f| &f.id).collect::<Vec<_>>()
         );
@@ -1407,7 +1414,10 @@ mod tests {
         let report = critic.review(&slopped(6)).unwrap();
         assert!(critic.canary_family() == Some(Family::CharNgram));
         assert!(
-            report.findings.iter().all(|f| f.family != Family::CharNgram),
+            report
+                .findings
+                .iter()
+                .all(|f| f.family != Family::CharNgram),
             "canary family leaked into the findings"
         );
     }
@@ -1429,7 +1439,11 @@ mod tests {
         assert_eq!(critic.canary_family(), Some(Family::CharNgram));
         let report = critic.review(&human(1)).unwrap();
         assert!(
-            report.guards.notes.iter().any(|n| n.contains("holding out")),
+            report
+                .guards
+                .notes
+                .iter()
+                .any(|n| n.contains("holding out")),
             "{:?}",
             report.guards.notes
         );
@@ -1520,7 +1534,11 @@ mod tests {
             .unwrap();
         assert!(third.guards.content_overlap.unwrap() < 0.5, "{third:?}");
         assert!(!third.guards.drift_ok);
-        assert!(third.guards.notes.iter().any(|n| n.contains("content overlap")));
+        assert!(third
+            .guards
+            .notes
+            .iter()
+            .any(|n| n.contains("content overlap")));
     }
 
     #[test]
@@ -1660,7 +1678,9 @@ mod tests {
         let mut union = Corpus::new();
         union.add(
             "ai",
-            (0..15).map(|i| Document::new(slopped(i))).collect::<Vec<_>>(),
+            (0..15)
+                .map(|i| Document::new(slopped(i)))
+                .collect::<Vec<_>>(),
         );
         union.add(
             "human",
@@ -1683,7 +1703,8 @@ mod tests {
         assert!(!report.findings.is_empty());
         let ids: Vec<&str> = report.findings.iter().map(|f| f.id.as_str()).collect();
         assert!(
-            ids.iter().any(|i| i.starts_with("lex.") || i.starts_with("sent.opener")),
+            ids.iter()
+                .any(|i| i.starts_with("lex.") || i.starts_with("sent.opener")),
             "{ids:?}"
         );
     }
@@ -1785,7 +1806,10 @@ mod tests {
             severity_of(1.0, 0.1, Some(Severity::High), Direction::Increase),
             Severity::Low
         );
-        assert_eq!(severity_of(3.5, 0.0, None, Direction::Reduce), Severity::High);
+        assert_eq!(
+            severity_of(3.5, 0.0, None, Direction::Reduce),
+            Severity::High
+        );
     }
 
     #[test]
@@ -1800,7 +1824,10 @@ mod tests {
             severity_of(0.0, 0.4, None, Direction::Reduce),
             Severity::Medium
         );
-        assert_eq!(severity_of(0.0, 0.1, None, Direction::Reduce), Severity::Low);
+        assert_eq!(
+            severity_of(0.0, 0.1, None, Direction::Reduce),
+            Severity::Low
+        );
     }
 
     #[test]
@@ -1822,7 +1849,10 @@ mod tests {
             .review("I looked at the p\u{0430}ypal thing again and it still looks wrong to me.")
             .unwrap();
         assert!(
-            report.guards.artifact_flags.contains(&"artifact.mixed_script".to_string()),
+            report
+                .guards
+                .artifact_flags
+                .contains(&"artifact.mixed_script".to_string()),
             "{:?}",
             report.guards.artifact_flags
         );

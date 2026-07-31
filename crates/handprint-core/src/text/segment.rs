@@ -254,7 +254,10 @@ fn line_offsets(source: &str) -> impl Iterator<Item = (usize, &str)> {
 
 /// Terminal punctuation that can end a sentence.
 fn is_terminator(c: char) -> bool {
-    matches!(c, '.' | '!' | '?' | '\u{2026}' | '\u{FF01}' | '\u{FF1F}' | '\u{3002}')
+    matches!(
+        c,
+        '.' | '!' | '?' | '\u{2026}' | '\u{FF01}' | '\u{FF1F}' | '\u{3002}'
+    )
 }
 
 /// Compute sentence spans, restricted to blocks that hold prose.
@@ -289,7 +292,12 @@ fn split_block(source: &str, block: Span, out: &mut Vec<Span>) {
         let mut run_end = chars.get(i).map(|&(o, _)| o).unwrap_or(text.len());
 
         // Allow closing quotes and brackets to belong to the sentence.
-        while i < chars.len() && matches!(chars[i].1, '"' | '\'' | ')' | ']' | '\u{201D}' | '\u{2019}' | '\u{00BB}') {
+        while i < chars.len()
+            && matches!(
+                chars[i].1,
+                '"' | '\'' | ')' | ']' | '\u{201D}' | '\u{2019}' | '\u{00BB}'
+            )
+        {
             i += 1;
             run_end = chars.get(i).map(|&(o, _)| o).unwrap_or(text.len());
         }
@@ -357,10 +365,7 @@ fn attach_tokens(source: &str, spans: &[Span], stream: &TokenStream) -> Vec<Sent
     let _ = source;
     let mut sentences: Vec<Sentence> = spans
         .iter()
-        .map(|&span| Sentence {
-            span,
-            tokens: 0..0,
-        })
+        .map(|&span| Sentence { span, tokens: 0..0 })
         .collect();
     if sentences.is_empty() {
         return sentences;
@@ -413,7 +418,10 @@ mod tests {
         let got: Vec<&str> = s.sentences.iter().map(|x| &text[x.span.range()]).collect();
         assert_eq!(
             got,
-            vec!["Ask Dr. Smith, i.e. the one from Fig. 2, about it.", "Then go."]
+            vec![
+                "Ask Dr. Smith, i.e. the one from Fig. 2, about it.",
+                "Then go."
+            ]
         );
     }
 

@@ -230,7 +230,9 @@ fn tokenize_words(
             continue;
         }
 
-        push_token(&mut out, scoring, offset, piece, kind, nfc, lower, unify_apos);
+        push_token(
+            &mut out, scoring, offset, piece, kind, nfc, lower, unify_apos,
+        );
     }
     out
 }
@@ -270,6 +272,20 @@ fn split_clitics(piece: &str) -> impl Iterator<Item = (usize, &str)> {
 }
 
 fn classify(piece: &str) -> TokenKind {
+    // The overwhelmingly common cases, decided without touching the Unicode
+    // tables. Word boundaries never mix letters with punctuation, so one look
+    // at the first byte settles an ASCII piece.
+    if piece.is_ascii() {
+        let bytes = piece.as_bytes();
+        let first = bytes[0];
+        if first.is_ascii_alphabetic() {
+            return TokenKind::Word;
+        }
+        if first.is_ascii_digit() && bytes.iter().all(|b| !b.is_ascii_alphabetic()) {
+            return TokenKind::Number;
+        }
+    }
+
     let mut has_alpha = false;
     let mut has_digit = false;
     let mut has_emoji = false;
@@ -332,7 +348,11 @@ pub fn is_emoji(c: char) -> bool {
 fn tokenize_chars(scoring: &ScoringText, n: usize, case: CaseFold) -> TokenStream {
     let text = scoring.as_str();
     let lower = matches!(case, CaseFold::Lower);
-    let folded: String = if lower { text.to_lowercase() } else { text.to_owned() };
+    let folded: String = if lower {
+        text.to_lowercase()
+    } else {
+        text.to_owned()
+    };
     // Lowercasing can change byte lengths (e.g. `İ`), so index the folded text
     // through its own char offsets and map window starts back through the
     // original character positions.

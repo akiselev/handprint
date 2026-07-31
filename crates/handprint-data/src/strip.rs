@@ -236,7 +236,8 @@ fn is_path(token: &str) -> bool {
         || t.starts_with("./")
         || t.starts_with("../")
         || t.starts_with('~')
-        || t.rsplit_once('.').is_some_and(|(_, ext)| CODE_EXTENSIONS.contains(&ext))
+        || t.rsplit_once('.')
+            .is_some_and(|(_, ext)| CODE_EXTENSIONS.contains(&ext))
 }
 
 /// Extensions common enough in agent transcripts to be worth recognizing.
@@ -282,7 +283,10 @@ mod tests {
 
     #[test]
     fn inline_spans_leave_an_empty_shell() {
-        let s = strip("Call `foo_bar(baz)` before `quux`.", &StripConfig::default());
+        let s = strip(
+            "Call `foo_bar(baz)` before `quux`.",
+            &StripConfig::default(),
+        );
         assert!(!s.text.contains("foo_bar"));
         assert!(!s.text.contains("quux"));
         assert_eq!(s.text, "Call `` before ``.");

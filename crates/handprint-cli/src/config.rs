@@ -84,8 +84,8 @@ impl Config {
 
     /// Load a config from an explicit path.
     pub fn load(path: &Path) -> Result<Config> {
-        let text = std::fs::read_to_string(path)
-            .with_context(|| format!("reading {}", path.display()))?;
+        let text =
+            std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
         toml::from_str(&text).with_context(|| format!("parsing {}", path.display()))
     }
 
@@ -144,8 +144,7 @@ path = "packs/ai-slop.json"
 
     #[test]
     fn discovery_walks_up_the_tree() {
-        let root =
-            std::env::temp_dir().join(format!("handprint-config-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("handprint-config-{}", std::process::id()));
         let nested = root.join("a").join("b");
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&nested).unwrap();

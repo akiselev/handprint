@@ -97,13 +97,59 @@ const MISSING_APOSTROPHE: &[&str] = &[
 /// Misspellings frequent enough to be worth hard-coding, none of which is a
 /// word in its own right.
 const MISSPELLINGS: &[&str] = &[
-    "teh", "recieve", "recieved", "seperate", "seperated", "definately", "occured", "occurence",
-    "alot", "wich", "adn", "thier", "becuase", "untill", "wierd", "arguement", "accomodate",
-    "embarass", "existance", "goverment", "independant", "neccessary", "publically", "recomend",
-    "refered", "tommorow", "truely", "writting", "acheive", "beleive", "calender", "cemetary",
-    "changable", "collegue", "concious", "enviroment", "foriegn", "gaurd", "harrass",
-    "immediatly", "knowlege", "liason", "maintainance", "occassion", "perseverence", "priviledge",
-    "questionaire", "rythm", "succesful", "supercede", "threshhold", "vaccuum", "visable",
+    "teh",
+    "recieve",
+    "recieved",
+    "seperate",
+    "seperated",
+    "definately",
+    "occured",
+    "occurence",
+    "alot",
+    "wich",
+    "adn",
+    "thier",
+    "becuase",
+    "untill",
+    "wierd",
+    "arguement",
+    "accomodate",
+    "embarass",
+    "existance",
+    "goverment",
+    "independant",
+    "neccessary",
+    "publically",
+    "recomend",
+    "refered",
+    "tommorow",
+    "truely",
+    "writting",
+    "acheive",
+    "beleive",
+    "calender",
+    "cemetary",
+    "changable",
+    "collegue",
+    "concious",
+    "enviroment",
+    "foriegn",
+    "gaurd",
+    "harrass",
+    "immediatly",
+    "knowlege",
+    "liason",
+    "maintainance",
+    "occassion",
+    "perseverence",
+    "priviledge",
+    "questionaire",
+    "rythm",
+    "succesful",
+    "supercede",
+    "threshhold",
+    "vaccuum",
+    "visable",
 ];
 
 /// Clitic endings that mark a token as a contraction.
@@ -194,7 +240,11 @@ impl Feature for PunctTypography {
         }
         let mut styles = Vec::with_capacity(STYLES.len());
         for name in STYLES {
-            styles.push(push(interner, format!("punct:style:{name}"), Unit::Fraction));
+            styles.push(push(
+                interner,
+                format!("punct:style:{name}"),
+                Unit::Fraction,
+            ));
         }
         let mut informal = Vec::with_capacity(INFORMAL.len());
         let mut informal_total = None;
@@ -248,7 +298,11 @@ impl Feature for PunctTypography {
         let (word_len, word_len_mean, word_len_stddev) = if self.word_lengths {
             let mut buckets = Vec::with_capacity(self.max_word_len + 1);
             for n in 1..=self.max_word_len {
-                buckets.push(push(interner, format!("punct:word_len:{n}"), Unit::Fraction));
+                buckets.push(push(
+                    interner,
+                    format!("punct:word_len:{n}"),
+                    Unit::Fraction,
+                ));
             }
             buckets.push(push(
                 interner,
@@ -321,8 +375,20 @@ impl FittedFeature for FittedPunct {
 
 impl FittedPunct {
     fn mark_rates(&self, source: &str, tokens: usize, out: &mut VectorBuilder) {
+        // Checking every character against all 32 mark sets is ~64 comparisons
+        // per character, which made this the single most expensive feature in
+        // the pipeline. ASCII - which is nearly all punctuation in practice -
+        // goes through a 128-entry dispatch table instead.
+        let table = ascii_mark_table();
         let mut counts = vec![0usize; MARKS.len()];
         for c in source.chars() {
+            if c.is_ascii() {
+                let slot = table[c as usize];
+                if slot >= 0 {
+                    counts[slot as usize] += 1;
+                }
+                continue;
+            }
             for (i, (_, set)) in MARKS.iter().enumerate() {
                 if set.contains(&c) {
                     counts[i] += 1;
@@ -336,7 +402,6 @@ impl FittedPunct {
 
     fn style_ratios(&self, analysis: &Analysis<'_>, out: &mut VectorBuilder) {
         let source = analysis.source();
-        let chars: Vec<char> = source.chars().collect();
 
         let mut em_total = 0usize;
         let mut em_spaced = 0usize;
@@ -347,43 +412,97 @@ impl FittedPunct {
         let mut space_before_punct = 0usize;
         let mut punct_total = 0usize;
 
-        for i in 0..chars.len() {
-            let c = chars[i];
-            let prev = i.checked_sub(1).map(|j| chars[j]);
-            let next = chars.get(i + 1).copied();
+        // A three-character sliding window, so nothing needs to be materialized.
+        let mut prev: Option<char> = None;
+        let mut pending: Option<(char, Option<char>)> = None;
+        let mut after_period = 0usize;
+
+        let step = |current: Option<char>,
+                    next: Option<char>,
+                    previous: Option<char>,
+                    em_total: &mut usize,
+                    em_spaced: &mut usize,
+                    en_total: &mut usize,
+                    spaced_hyphen: &mut usize,
+                    space_before_punct: &mut usize,
+                    punct_total: &mut usize| {
+            let Some(c) = current else { return };
             match c {
-                '\u{2014}' => {
-                    em_total += 1;
-                    if prev.is_some_and(char::is_whitespace) && next.is_some_and(char::is_whitespace)
-                    {
-                        em_spaced += 1;
-                    }
+                '\u{2014}'
+                    if previous.is_some_and(char::is_whitespace)
+                        && next.is_some_and(char::is_whitespace) =>
+                {
+                    *em_total += 1;
+                    *em_spaced += 1;
                 }
-                '\u{2013}' => en_total += 1,
-                '-' => {
-                    if prev.is_some_and(char::is_whitespace) && next.is_some_and(char::is_whitespace)
-                    {
-                        spaced_hyphen += 1;
-                    }
-                }
-                '.' => {
-                    let after: Vec<char> = chars[i + 1..].iter().take(2).copied().collect();
-                    if after.first() == Some(&' ') {
-                        if after.get(1) == Some(&' ') {
-                            double_space_after_period += 1;
-                        } else {
-                            single_space_after_period += 1;
-                        }
-                    }
+                '\u{2014}' => *em_total += 1,
+                '\u{2013}' => *en_total += 1,
+                // A spaced hyphen is the same authorial gesture as an em dash,
+                // made on a keyboard that has no em dash.
+                '-' if previous.is_some_and(char::is_whitespace)
+                    && next.is_some_and(char::is_whitespace) =>
+                {
+                    *spaced_hyphen += 1
                 }
                 _ => {}
             }
             if crate::text::tokenize::is_punctuation(c) && c != '(' && c != '[' && c != '{' {
-                punct_total += 1;
-                if prev == Some(' ') {
-                    space_before_punct += 1;
+                *punct_total += 1;
+                if previous == Some(' ') {
+                    *space_before_punct += 1;
                 }
             }
+        };
+
+        for c in source.chars() {
+            if let Some((current, previous)) = pending.take() {
+                step(
+                    Some(current),
+                    Some(c),
+                    previous,
+                    &mut em_total,
+                    &mut em_spaced,
+                    &mut en_total,
+                    &mut spaced_hyphen,
+                    &mut space_before_punct,
+                    &mut punct_total,
+                );
+                prev = Some(current);
+            }
+            // Spacing after a full stop, tracked as a tiny state machine.
+            match after_period {
+                1 if c == ' ' => after_period = 2,
+                1 => after_period = 0,
+                2 if c == ' ' => {
+                    double_space_after_period += 1;
+                    after_period = 0;
+                }
+                2 => {
+                    single_space_after_period += 1;
+                    after_period = 0;
+                }
+                _ => {}
+            }
+            if c == '.' {
+                after_period = 1;
+            }
+            pending = Some((c, prev));
+        }
+        if let Some((current, previous)) = pending {
+            step(
+                Some(current),
+                None,
+                previous,
+                &mut em_total,
+                &mut em_spaced,
+                &mut en_total,
+                &mut spaced_hyphen,
+                &mut space_before_punct,
+                &mut punct_total,
+            );
+        }
+        if after_period == 2 {
+            single_space_after_period += 1;
         }
 
         let curly_double = count_any(source, &['\u{201C}', '\u{201D}']);
@@ -486,7 +605,11 @@ impl FittedPunct {
                 TokenKind::Word => {
                     let raw = analysis.text(token.span);
                     let letters = raw.chars().filter(|c| c.is_alphabetic()).count();
-                    if letters >= 2 && raw.chars().filter(|c| c.is_alphabetic()).all(char::is_uppercase)
+                    if letters >= 2
+                        && raw
+                            .chars()
+                            .filter(|c| c.is_alphabetic())
+                            .all(char::is_uppercase)
                     {
                         allcaps += 1;
                         out.note_span(self.allcaps, token.span);
@@ -508,10 +631,19 @@ impl FittedPunct {
         if !self.letters.is_empty() {
             let mut counts = [0usize; 26];
             let mut total = 0usize;
-            for c in source.chars().flat_map(char::to_lowercase) {
-                if c.is_ascii_lowercase() {
-                    counts[(c as u8 - b'a') as usize] += 1;
+            for c in source.chars() {
+                // ASCII needs no case-folding iterator, which is the whole cost
+                // of this scan on ordinary prose.
+                if c.is_ascii_alphabetic() {
+                    counts[(c.to_ascii_lowercase() as u8 - b'a') as usize] += 1;
                     total += 1;
+                } else if !c.is_ascii() {
+                    for folded in c.to_lowercase() {
+                        if folded.is_ascii_lowercase() {
+                            counts[(folded as u8 - b'a') as usize] += 1;
+                            total += 1;
+                        }
+                    }
                 }
             }
             for (i, &sym) in self.letters.iter().enumerate() {
@@ -566,6 +698,27 @@ impl FittedPunct {
             out.set(sym, util::stddev(&lengths));
         }
     }
+}
+
+/// Maps an ASCII byte to the index of the [`MARKS`] entry it belongs to, or
+/// `-1`. Built once; each ASCII character appears in at most one mark set.
+fn ascii_mark_table() -> &'static [i8; 128] {
+    static TABLE: std::sync::OnceLock<[i8; 128]> = std::sync::OnceLock::new();
+    TABLE.get_or_init(|| {
+        let mut table = [-1i8; 128];
+        for (i, (_, set)) in MARKS.iter().enumerate() {
+            for &c in *set {
+                if c.is_ascii() {
+                    debug_assert_eq!(
+                        table[c as usize], -1,
+                        "ASCII character {c:?} appears in two mark sets"
+                    );
+                    table[c as usize] = i as i8;
+                }
+            }
+        }
+        table
+    })
 }
 
 fn count_any(source: &str, set: &[char]) -> usize {
@@ -674,7 +827,10 @@ mod tests {
             1.0
         );
         assert_eq!(value("\"hi\" said x", "punct:style:quote_curly_share"), 0.0);
-        assert_eq!(value("wait\u{2026} ok", "punct:style:ellipsis_char_share"), 1.0);
+        assert_eq!(
+            value("wait\u{2026} ok", "punct:style:ellipsis_char_share"),
+            1.0
+        );
         assert_eq!(value("wait... ok", "punct:style:ellipsis_char_share"), 0.0);
     }
 
@@ -684,7 +840,10 @@ mod tests {
         assert!(value("i dont think so", "punct:informal:missing_apostrophe") > 0.0);
         assert!(value("i recieve alot", "punct:informal:common_misspelling") > 0.0);
         assert!(value("really?!? no way!!", "punct:informal:elongated_punct") > 0.0);
-        assert_eq!(value("wait... ok. fine.", "punct:informal:elongated_punct"), 0.0);
+        assert_eq!(
+            value("wait... ok. fine.", "punct:informal:elongated_punct"),
+            0.0
+        );
         assert_eq!(value("clean prose here", "punct:informal:total"), 0.0);
     }
 

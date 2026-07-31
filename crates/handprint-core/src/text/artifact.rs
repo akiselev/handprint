@@ -109,8 +109,26 @@ pub fn scan(source: &str) -> ArtifactReport {
 }
 
 fn scan_characters(source: &str, out: &mut Vec<Artifact>) {
-    let chars: Vec<(usize, char)> = source.char_indices().collect();
-    for (i, &(offset, c)) in chars.iter().enumerate() {
+    // ASCII cannot be invisible, a joiner, or a confusable, and prose is
+    // overwhelmingly ASCII - so these fast paths decide the throughput of every
+    // profile. Only the zero-width joiner needs neighbour context, and it is
+    // resolved with one pending slot rather than a materialized char vector.
+    if source.is_ascii() {
+        return;
+    }
+    let mut prev: Option<char> = None;
+    let mut pending_joiner: Option<(usize, Option<char>)> = None;
+
+    for (offset, c) in source.char_indices() {
+        if let Some((joiner_offset, before)) = pending_joiner.take() {
+            if !joins_emoji(before, Some(c)) {
+                out.push(stray_joiner(joiner_offset));
+            }
+        }
+        if c.is_ascii() {
+            prev = Some(c);
+            continue;
+        }
         if normalize::is_invisible(c) {
             out.push(Artifact {
                 kind: ArtifactKind::ZeroWidth,
@@ -118,25 +136,32 @@ fn scan_characters(source: &str, out: &mut Vec<Artifact>) {
                 detail: format!("U+{:04X}", c as u32),
             });
         } else if normalize::is_zero_width_joiner(c) {
-            let prev = i.checked_sub(1).map(|j| chars[j].1);
-            let next = chars.get(i + 1).map(|&(_, c)| c);
-            let joins_emoji = prev.is_some_and(crate::text::tokenize::is_emoji)
-                && next.is_some_and(crate::text::tokenize::is_emoji);
-            if !joins_emoji {
-                out.push(Artifact {
-                    kind: ArtifactKind::StrayJoiner,
-                    span: Span::new(offset, offset + c.len_utf8()),
-                    detail: "U+200D outside an emoji sequence".into(),
-                });
-            }
-        } else if normalize::fold_confusable(c).is_some() {
-            let folded = normalize::fold_confusable(c).unwrap();
+            pending_joiner = Some((offset, prev));
+        } else if let Some(folded) = normalize::fold_confusable(c) {
             out.push(Artifact {
                 kind: ArtifactKind::Confusable,
                 span: Span::new(offset, offset + c.len_utf8()),
                 detail: format!("U+{:04X} '{c}' folds to '{folded}'", c as u32),
             });
         }
+        prev = Some(c);
+    }
+    // A joiner at the very end of the text joins nothing.
+    if let Some((joiner_offset, _)) = pending_joiner {
+        out.push(stray_joiner(joiner_offset));
+    }
+}
+
+fn joins_emoji(before: Option<char>, after: Option<char>) -> bool {
+    before.is_some_and(crate::text::tokenize::is_emoji)
+        && after.is_some_and(crate::text::tokenize::is_emoji)
+}
+
+fn stray_joiner(offset: usize) -> Artifact {
+    Artifact {
+        kind: ArtifactKind::StrayJoiner,
+        span: Span::new(offset, offset + '\u{200D}'.len_utf8()),
+        detail: "U+200D outside an emoji sequence".into(),
     }
 }
 
@@ -145,8 +170,16 @@ fn scan_characters(source: &str, out: &mut Vec<Artifact>) {
 /// deliberate mixed-script names) are rare and worth surfacing anyway.
 fn scan_words(source: &str, out: &mut Vec<Artifact>) {
     use unicode_segmentation::UnicodeSegmentation;
+    // No all-ASCII text can mix scripts, so an ASCII document skips a whole
+    // second pass of word segmentation.
+    if source.is_ascii() {
+        return;
+    }
     for (offset, word) in source.split_word_bound_indices() {
-        if !word.chars().any(char::is_alphabetic) {
+        // An all-ASCII word is entirely Latin and Common, so it can never mix
+        // scripts. Skipping it early keeps this scan off the critical path for
+        // ordinary prose.
+        if word.is_ascii() || !word.chars().any(char::is_alphabetic) {
             continue;
         }
         let mut scripts: Vec<Script> = Vec::new();
@@ -179,20 +212,19 @@ fn scan_residue(source: &str, out: &mut Vec<Artifact>) {
             from = start + pattern.len();
         }
     }
-    // `[cite: 12]`, `[cite_start]`, `[citation:3]` — bracketed citation stubs.
+    // `[cite: 12]`, `[cite_start]`, `[citation:3]` - bracketed citation stubs.
     let bytes = source.as_bytes();
-    let mut i = 0;
+    let mut i = 0usize;
     while let Some(rel) = source[i..].find('[') {
         let start = i + rel;
-        let rest = &source[start..];
-        let lower_head: String = rest.chars().take(10).collect::<String>().to_lowercase();
-        if lower_head.starts_with("[cite") {
-            if let Some(close) = rest.find(']') {
+        let head = &bytes[start..bytes.len().min(start + 5)];
+        if head.len() == 5 && head[1..].eq_ignore_ascii_case(b"cite") {
+            if let Some(close) = source[start..].find(']') {
                 if close < 24 {
                     out.push(Artifact {
                         kind: ArtifactKind::ChatbotResidue,
                         span: Span::new(start, start + close + 1),
-                        detail: rest[..close + 1].to_owned(),
+                        detail: source[start..start + close + 1].to_owned(),
                     });
                 }
             }

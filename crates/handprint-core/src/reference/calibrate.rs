@@ -305,7 +305,11 @@ impl Calibration {
                 // A random window, not always the prefix: document openings are
                 // stylistically unrepresentative (greetings, headers).
                 let slack = ends.len() - target;
-                let start_tok = if slack == 0 { 0 } else { rng.gen_range(0..=slack) };
+                let start_tok = if slack == 0 {
+                    0
+                } else {
+                    rng.gen_range(0..=slack)
+                };
                 let start = if start_tok == 0 {
                     0
                 } else {
@@ -672,7 +676,10 @@ mod tests {
         let cal = Calibration::fit(&reference, &corpus, &small_config()).unwrap();
         assert!(cal.assess_at(0.5, 5.0).extrapolated);
         assert!(cal.assess_at(0.5, 1_000_000.0).extrapolated);
-        assert!(!cal.assess_at(0.5, cal.bins()[0].tokens as f64 + 5.0).extrapolated);
+        assert!(
+            !cal.assess_at(0.5, cal.bins()[0].tokens as f64 + 5.0)
+                .extrapolated
+        );
     }
 
     #[test]
@@ -698,5 +705,3 @@ mod tests {
         assert!(bracket(&centers, 9.0).3);
     }
 }
-
-

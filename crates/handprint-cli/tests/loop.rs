@@ -48,7 +48,10 @@ struct Rng(u64);
 
 impl Rng {
     fn next(&mut self) -> u64 {
-        self.0 = self.0.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        self.0 = self
+            .0
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         self.0 >> 33
     }
 
@@ -75,7 +78,11 @@ fn binary() -> PathBuf {
     if path.ends_with("deps") {
         path.pop();
     }
-    path.join(if cfg!(windows) { "handprint.exe" } else { "handprint" })
+    path.join(if cfg!(windows) {
+        "handprint.exe"
+    } else {
+        "handprint"
+    })
 }
 
 struct Fixture {
@@ -84,10 +91,8 @@ struct Fixture {
 
 impl Fixture {
     fn new(name: &str) -> Fixture {
-        let dir = std::env::temp_dir().join(format!(
-            "handprint-loop-{name}-{}",
-            std::process::id()
-        ));
+        let dir =
+            std::env::temp_dir().join(format!("handprint-loop-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(dir.join("me")).unwrap();
         std::fs::create_dir_all(dir.join("background")).unwrap();
@@ -182,7 +187,10 @@ impl Fixture {
             reference.file_name().unwrap().to_str().unwrap(),
             "draft.txt",
         ]);
-        assert!(code == 0 || code == 1, "critique errored ({code}): {err}\n{out}");
+        assert!(
+            code == 0 || code == 1,
+            "critique errored ({code}): {err}\n{out}"
+        );
         let report: CritiqueReport =
             serde_json::from_str(&out).unwrap_or_else(|e| panic!("bad JSON ({e}): {out}"));
         (code, report)
@@ -222,7 +230,10 @@ fn apply_fixes(draft: &str, report: &CritiqueReport) -> String {
 
     let mut out = draft.to_owned();
     for (start, end, replacement) in edits {
-        if start <= end && end <= out.len() && out.is_char_boundary(start) && out.is_char_boundary(end)
+        if start <= end
+            && end <= out.len()
+            && out.is_char_boundary(start)
+            && out.is_char_boundary(end)
         {
             out.replace_range(start..end, &replacement);
         }
@@ -271,7 +282,11 @@ fn a_scripted_agent_converges_on_a_salted_draft() {
     );
 
     let (first_code, first) = fixture.critique(&reference, &draft);
-    assert_eq!(first_code, 1, "the salted draft should fail: {:?}", first.verdict);
+    assert_eq!(
+        first_code, 1,
+        "the salted draft should fail: {:?}",
+        first.verdict
+    );
     assert!(first.findings_total > 0);
     let initial_findings = first.findings_total;
     let initial_distance = first.verdict.distance;
@@ -335,7 +350,10 @@ fn spans_are_byte_exact_so_patches_apply_cleanly() {
             checked += 1;
         }
     }
-    assert!(checked > 0, "expected at least one per-term finding to check");
+    assert!(
+        checked > 0,
+        "expected at least one per-term finding to check"
+    );
 }
 
 #[test]
@@ -412,7 +430,10 @@ fn forensic_commands_run() {
     ]);
     assert_eq!(code, 0, "{err}");
     assert!(out.contains("distance"));
-    assert!(out.contains("p_value_vs_unrelated is P("), "the caveat must be printed: {out}");
+    assert!(
+        out.contains("p_value_vs_unrelated is P("),
+        "the caveat must be printed: {out}"
+    );
 
     // With a metric it was *not* calibrated for, it says exactly that rather
     // than silently omitting the numbers.
@@ -429,8 +450,15 @@ fn forensic_commands_run() {
     assert_eq!(code, 0, "{err}");
     assert!(out.contains("confidence by family"));
 
-    let (code, out, err) =
-        fixture.run(&["rank", "-r", &name, "a.txt", "background", "--metric", "burrows"]);
+    let (code, out, err) = fixture.run(&[
+        "rank",
+        "-r",
+        &name,
+        "a.txt",
+        "background",
+        "--metric",
+        "burrows",
+    ]);
     assert_eq!(code, 0, "{err}");
     assert!(out.contains("Ranking is not identification"), "{out}");
 
@@ -449,7 +477,10 @@ fn forensic_commands_run() {
     ]);
     assert_eq!(code, 0, "{err}");
     assert!(out.contains("alpha0"), "{out}");
-    assert!(out.contains("comparable only within this term universe"), "{out}");
+    assert!(
+        out.contains("comparable only within this term universe"),
+        "{out}"
+    );
 
     let (code, out, err) = fixture.run(&["explain", "-r", &name, "b.txt", "--html", "out.html"]);
     assert_eq!(code, 0, "{err}");

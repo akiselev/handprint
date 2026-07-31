@@ -45,7 +45,7 @@ impl ScoringText {
         // Fast path: the overwhelmingly common case is text that needs no
         // rewriting at all, and we can detect it with one scan that allocates
         // nothing.
-        if !source.chars().any(|c| needs_rewrite(c).is_some()) {
+        if source.is_ascii() || !source.chars().any(|c| needs_rewrite(c).is_some()) {
             return Self {
                 text: source.to_owned(),
                 map: OffsetMap::Identity,
@@ -90,21 +90,23 @@ impl ScoringText {
     pub fn to_source_offset(&self, offset: usize) -> usize {
         match &self.map {
             OffsetMap::Identity => offset.min(self.source_len),
-            OffsetMap::Table(table) => match table.binary_search_by_key(&(offset as u32), |e| e.0) {
-                // Several scoring offsets can collide when characters were
-                // dropped; binary_search may land on any of them. Walk back to
-                // the first entry with this offset so a dropped run maps to its
-                // start rather than its end.
-                Ok(i) => {
-                    let mut i = i;
-                    while i > 0 && table[i - 1].0 == offset as u32 {
-                        i -= 1;
+            OffsetMap::Table(table) => {
+                match table.binary_search_by_key(&(offset as u32), |e| e.0) {
+                    // Several scoring offsets can collide when characters were
+                    // dropped; binary_search may land on any of them. Walk back to
+                    // the first entry with this offset so a dropped run maps to its
+                    // start rather than its end.
+                    Ok(i) => {
+                        let mut i = i;
+                        while i > 0 && table[i - 1].0 == offset as u32 {
+                            i -= 1;
+                        }
+                        table[i].1 as usize
                     }
-                    table[i].1 as usize
+                    Err(0) => 0,
+                    Err(i) => table[i - 1].1 as usize,
                 }
-                Err(0) => 0,
-                Err(i) => table[i - 1].1 as usize,
-            },
+            }
         }
     }
 
@@ -175,25 +177,97 @@ pub fn fold_confusable(c: char) -> Option<char> {
     }
     let folded = match c {
         // Cyrillic → Latin
-        'А' => 'A', 'В' => 'B', 'Е' => 'E', 'К' => 'K', 'М' => 'M', 'Н' => 'H',
-        'О' => 'O', 'Р' => 'P', 'С' => 'C', 'Т' => 'T', 'У' => 'Y', 'Х' => 'X',
-        'Ѕ' => 'S', 'І' => 'I', 'Ј' => 'J', 'Ԁ' => 'D', 'Ԍ' => 'G', 'Ԛ' => 'Q',
-        'Ԝ' => 'W', 'Ѵ' => 'V',
-        'а' => 'a', 'в' => 'b', 'е' => 'e', 'к' => 'k', 'м' => 'm', 'н' => 'h',
-        'о' => 'o', 'р' => 'p', 'с' => 'c', 'т' => 't', 'у' => 'y', 'х' => 'x',
-        'ѕ' => 's', 'і' => 'i', 'ј' => 'j', 'ԛ' => 'q', 'ԝ' => 'w', 'ѵ' => 'v',
-        'ё' => 'e', 'ї' => 'i', 'ґ' => 'r', 'ѐ' => 'e',
+        'А' => 'A',
+        'В' => 'B',
+        'Е' => 'E',
+        'К' => 'K',
+        'М' => 'M',
+        'Н' => 'H',
+        'О' => 'O',
+        'Р' => 'P',
+        'С' => 'C',
+        'Т' => 'T',
+        'У' => 'Y',
+        'Х' => 'X',
+        'Ѕ' => 'S',
+        'І' => 'I',
+        'Ј' => 'J',
+        'Ԁ' => 'D',
+        'Ԍ' => 'G',
+        'Ԛ' => 'Q',
+        'Ԝ' => 'W',
+        'Ѵ' => 'V',
+        'а' => 'a',
+        'в' => 'b',
+        'е' => 'e',
+        'к' => 'k',
+        'м' => 'm',
+        'н' => 'h',
+        'о' => 'o',
+        'р' => 'p',
+        'с' => 'c',
+        'т' => 't',
+        'у' => 'y',
+        'х' => 'x',
+        'ѕ' => 's',
+        'і' => 'i',
+        'ј' => 'j',
+        'ԛ' => 'q',
+        'ԝ' => 'w',
+        'ѵ' => 'v',
+        'ё' => 'e',
+        'ї' => 'i',
+        'ґ' => 'r',
+        'ѐ' => 'e',
         // Greek → Latin
-        'Α' => 'A', 'Β' => 'B', 'Ε' => 'E', 'Ζ' => 'Z', 'Η' => 'H', 'Ι' => 'I',
-        'Κ' => 'K', 'Μ' => 'M', 'Ν' => 'N', 'Ο' => 'O', 'Ρ' => 'P', 'Τ' => 'T',
-        'Υ' => 'Y', 'Χ' => 'X', 'Ϲ' => 'C', 'Ϳ' => 'J',
-        'α' => 'a', 'ο' => 'o', 'ρ' => 'p', 'ν' => 'v', 'ϲ' => 'c', 'ι' => 'i',
-        'κ' => 'k', 'υ' => 'u', 'τ' => 't', 'ϳ' => 'j',
+        'Α' => 'A',
+        'Β' => 'B',
+        'Ε' => 'E',
+        'Ζ' => 'Z',
+        'Η' => 'H',
+        'Ι' => 'I',
+        'Κ' => 'K',
+        'Μ' => 'M',
+        'Ν' => 'N',
+        'Ο' => 'O',
+        'Ρ' => 'P',
+        'Τ' => 'T',
+        'Υ' => 'Y',
+        'Χ' => 'X',
+        'Ϲ' => 'C',
+        'Ϳ' => 'J',
+        'α' => 'a',
+        'ο' => 'o',
+        'ρ' => 'p',
+        'ν' => 'v',
+        'ϲ' => 'c',
+        'ι' => 'i',
+        'κ' => 'k',
+        'υ' => 'u',
+        'τ' => 't',
+        'ϳ' => 'j',
         // Armenian / Cherokee / other single-letter lookalikes
-        'Ꭺ' => 'A', 'Ꭼ' => 'E', 'Ꮋ' => 'H', 'Ꮖ' => 'I', 'Ꭻ' => 'J', 'Ꮶ' => 'K',
-        'Ꮮ' => 'L', 'Ꮇ' => 'M', 'Ꭴ' => 'O', 'Ꮲ' => 'P', 'Ꭱ' => 'R', 'Ꮪ' => 'S',
-        'Ꭲ' => 'T', 'Ꮩ' => 'V', 'Ꮃ' => 'W', 'Ꭹ' => 'Y', 'Ꮓ' => 'Z',
-        'օ' => 'o', 'ս' => 'u', 'ց' => 'g', 'ք' => 'p',
+        'Ꭺ' => 'A',
+        'Ꭼ' => 'E',
+        'Ꮋ' => 'H',
+        'Ꮖ' => 'I',
+        'Ꭻ' => 'J',
+        'Ꮶ' => 'K',
+        'Ꮮ' => 'L',
+        'Ꮇ' => 'M',
+        'Ꭴ' => 'O',
+        'Ꮲ' => 'P',
+        'Ꭱ' => 'R',
+        'Ꮪ' => 'S',
+        'Ꭲ' => 'T',
+        'Ꮩ' => 'V',
+        'Ꮃ' => 'W',
+        'Ꭹ' => 'Y',
+        'Ꮓ' => 'Z',
+        'օ' => 'o',
+        'ս' => 'u',
+        'ց' => 'g',
+        'ք' => 'p',
         _ => return None,
     };
     Some(folded)
@@ -273,9 +347,25 @@ pub fn script_of(c: char) -> Script {
 ///
 /// Returns a borrowed string whenever nothing changed, which is the common case
 /// for lowercase ASCII prose.
-pub fn normalize_token(s: &str, nfc: bool, lowercase: bool, fold_apostrophes: bool) -> std::borrow::Cow<'_, str> {
+pub fn normalize_token(
+    s: &str,
+    nfc: bool,
+    lowercase: bool,
+    fold_apostrophes: bool,
+) -> std::borrow::Cow<'_, str> {
     use std::borrow::Cow;
     use unicode_normalization::UnicodeNormalization;
+
+    // ASCII is always NFC, contains no curly apostrophe, and lowercases
+    // bytewise. Since almost every token in English prose is ASCII, this fast
+    // path removes three whole-token scans from the common case.
+    if s.is_ascii() {
+        return if lowercase && s.bytes().any(|b| b.is_ascii_uppercase()) {
+            Cow::Owned(s.to_ascii_lowercase())
+        } else {
+            Cow::Borrowed(s)
+        };
+    }
 
     let mut out: Cow<'_, str> = Cow::Borrowed(s);
     if nfc
@@ -326,7 +416,10 @@ mod tests {
         let st = ScoringText::new(source);
         assert_eq!(st.as_str(), "delve");
         assert_eq!(st.to_source_offset(5), source.len());
-        assert_eq!(&source[st.to_source_span(Span::new(2, 5)).range()], "\u{200B}lve");
+        assert_eq!(
+            &source[st.to_source_span(Span::new(2, 5)).range()],
+            "\u{200B}lve"
+        );
     }
 
     #[test]

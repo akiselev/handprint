@@ -134,11 +134,60 @@ impl Default for PrivacyCull {
     }
 }
 
+/// Which terms are eligible to enter a contrast.
+///
+/// Restricting the vocabulary is the crate's main defence against its dominant
+/// failure mode. An unrestricted contrast between two corpora that differ in
+/// *subject* will surface the subject: run it over two coding-agent transcripts
+/// and the top terms are the projects each one worked on, which says nothing
+/// about how either writes.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(tag = "vocabulary", rename_all = "snake_case")]
+pub enum TermFilter {
+    /// Every term above the count floor. Maximum power when the two corpora
+    /// share a topic, maximum topic leakage when they do not.
+    #[default]
+    All,
+    /// Closed-class function words only — determiners, pronouns, prepositions,
+    /// conjunctions, auxiliaries.
+    ///
+    /// Function words carry no topic, so what survives is style: which pronouns
+    /// someone reaches for, how they hedge, whether they coordinate or
+    /// subordinate. Use this whenever the two corpora were not written about the
+    /// same things.
+    FunctionWords,
+    /// An explicit allow-list.
+    Explicit {
+        /// Terms eligible to enter the contrast.
+        terms: Vec<String>,
+    },
+}
+
+impl TermFilter {
+    /// Whether a term is eligible.
+    ///
+    /// Multi-token terms (bigrams, trigrams) pass the function-word filter only
+    /// when *every* token is a function word, so `"of the"` survives and
+    /// `"of housing"` does not.
+    pub fn accepts(&self, term: &str) -> bool {
+        match self {
+            TermFilter::All => true,
+            TermFilter::FunctionWords => term
+                .split(' ')
+                .all(|word| crate::feature::mfw::FUNCTION_WORDS.contains(&word)),
+            TermFilter::Explicit { terms } => terms.iter().any(|t| t == term),
+        }
+    }
+}
+
 /// How to fit a contrast.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ContrastConfig {
     /// The single term universe for this fit.
     pub universe: Universe,
+    /// Which terms are eligible.
+    #[serde(default)]
+    pub vocabulary: TermFilter,
     /// The Dirichlet prior.
     pub prior: Prior,
     /// Which variance formula to use.
@@ -155,6 +204,7 @@ impl Default for ContrastConfig {
     fn default() -> Self {
         ContrastConfig {
             universe: Universe::Words,
+            vocabulary: TermFilter::default(),
             prior: Prior::default(),
             variance: Variance::Full,
             min_count: 5,
@@ -191,6 +241,18 @@ impl ContrastConfig {
     /// Apply privacy culling.
     pub fn privacy(mut self, cull: PrivacyCull) -> Self {
         self.privacy = Some(cull);
+        self
+    }
+
+    /// Restrict which terms may enter the contrast.
+    pub fn vocabulary(mut self, filter: TermFilter) -> Self {
+        self.vocabulary = filter;
+        self
+    }
+
+    /// Shorthand for the topic-robust setting.
+    pub fn function_words(mut self) -> Self {
+        self.vocabulary = TermFilter::FunctionWords;
         self
     }
 }
@@ -233,6 +295,8 @@ pub struct ContrastModel {
     name: String,
     universe: Universe,
     variance: Variance,
+    #[serde(default)]
+    vocabulary: TermFilter,
     terms: Vec<TermStats>,
     n_a: usize,
     n_b: usize,
@@ -262,7 +326,9 @@ impl ContrastModel {
         if n_a == 0 || n_b == 0 {
             return Err(Error::CorpusTooSmall {
                 feature: "ContrastModel",
-                detail: format!("side A has {n_a} terms and side B has {n_b}; both must be non-empty"),
+                detail: format!(
+                    "side A has {n_a} terms and side B has {n_b}; both must be non-empty"
+                ),
             });
         }
         if config.min_count == 0 {
@@ -283,6 +349,7 @@ impl ContrastModel {
                 counts_a.get(w).copied().unwrap_or(0) + counts_b.get(w).copied().unwrap_or(0)
                     >= config.min_count
             })
+            .filter(|w| config.vocabulary.accepts(w))
             .collect();
 
         // Privacy culling runs before the prior is computed, because |V| feeds
@@ -293,7 +360,11 @@ impl ContrastModel {
         let before = vocabulary.len();
         if let Some(cull) = cull {
             vocabulary.retain(|w| {
-                docs_a.get(w).copied().unwrap_or(0).max(docs_b.get(w).copied().unwrap_or(0))
+                docs_a
+                    .get(w)
+                    .copied()
+                    .unwrap_or(0)
+                    .max(docs_b.get(w).copied().unwrap_or(0))
                     >= cull.min_documents
             });
         }
@@ -303,8 +374,8 @@ impl ContrastModel {
             return Err(Error::CorpusTooSmall {
                 feature: "ContrastModel",
                 detail: format!(
-                    "no term survived selection (min_count={}, privacy={:?})",
-                    config.min_count, cull
+                    "no term survived selection (min_count={}, vocabulary={:?}, privacy={:?})",
+                    config.min_count, config.vocabulary, cull
                 ),
             });
         }
@@ -390,6 +461,7 @@ impl ContrastModel {
             name: name.into(),
             universe: config.universe,
             variance: config.variance,
+            vocabulary: config.vocabulary.clone(),
             terms,
             n_a,
             n_b,
@@ -444,11 +516,17 @@ impl ContrastModel {
         self.privacy
     }
 
+    /// The term filter this contrast was fitted under.
+    pub fn vocabulary(&self) -> &TermFilter {
+        &self.vocabulary
+    }
+
     /// A one-line summary of the fit's regularization, worth logging: `α₀` is
     /// the setting most likely to be silently wrong.
     pub fn describe(&self) -> String {
         format!(
-            "{} [{}]: n_a={} n_b={} |V|={} alpha0={:.1} (neutral would be {}) variance={:?}{}",
+            "{} [{}]: n_a={} n_b={} |V|={} alpha0={:.1} (neutral would be {}) \
+             variance={:?} vocabulary={:?}{}",
             self.name,
             self.universe.as_str(),
             self.n_a,
@@ -457,6 +535,7 @@ impl ContrastModel {
             self.alpha0,
             self.n_a.min(self.n_b),
             self.variance,
+            self.vocabulary,
             if self.culled > 0 {
                 format!(", privacy-culled {} term(s)", self.culled)
             } else {
@@ -493,10 +572,7 @@ impl ContrastModel {
                 what: "ContrastModel::into_feature",
                 detail: format!(
                     "no term reached |z| >= {z_threshold}; the largest was {:.2}",
-                    self.terms
-                        .iter()
-                        .map(|t| t.z.abs())
-                        .fold(0.0f64, f64::max)
+                    self.terms.iter().map(|t| t.z.abs()).fold(0.0f64, f64::max)
                 ),
             });
         }
@@ -720,8 +796,18 @@ mod tests {
         let sum: f64 = model.terms().iter().map(|t| t.alpha).sum();
         assert!((sum - 50.0).abs() < 1e-9, "{sum}");
         // Common words get more prior mass than rare ones.
-        let the = model.terms().iter().find(|t| t.text == "the").unwrap().alpha;
-        let mat = model.terms().iter().find(|t| t.text == "mat").unwrap().alpha;
+        let the = model
+            .terms()
+            .iter()
+            .find(|t| t.text == "the")
+            .unwrap()
+            .alpha;
+        let mat = model
+            .terms()
+            .iter()
+            .find(|t| t.text == "mat")
+            .unwrap()
+            .alpha;
         assert!(the > mat);
     }
 
@@ -802,7 +888,10 @@ mod tests {
         let low = z_of(1, "delve");
         let high = z_of(4, "delve");
         assert!(low > 0.0, "delve should favour side A: {low}");
-        assert!(high > low, "z should grow with salting rate: {low} -> {high}");
+        assert!(
+            high > low,
+            "z should grow with salting rate: {low} -> {high}"
+        );
 
         // The top terms for side A are the salted markers.
         let model = ContrastModel::fit(
@@ -816,16 +905,84 @@ mod tests {
                 .min_count(2),
         )
         .unwrap();
-        let top: Vec<&str> = model.top(6, Side::A).iter().map(|t| t.text.as_str()).collect();
+        let top: Vec<&str> = model
+            .top(6, Side::A)
+            .iter()
+            .map(|t| t.text.as_str())
+            .collect();
         assert!(top.contains(&"delve"), "{top:?}");
         assert!(top.contains(&"tapestry"), "{top:?}");
 
         // And the other side surfaces the human markers.
-        let bottom: Vec<&str> = model.top(6, Side::B).iter().map(|t| t.text.as_str()).collect();
+        let bottom: Vec<&str> = model
+            .top(6, Side::B)
+            .iter()
+            .map(|t| t.text.as_str())
+            .collect();
         assert!(
             bottom.contains(&"honestly") || bottom.contains(&"wrong") || bottom.contains(&"i"),
             "{bottom:?}"
         );
+    }
+
+    #[test]
+    fn the_function_word_filter_removes_topic() {
+        // Two corpora about different subjects, written with different function
+        // words. Unfiltered, the topic wins; filtered, the style does.
+        let a = corpus_of(
+            &["the compiler crashed again and I think it is the linker that broke it"; 6],
+        );
+        let b = corpus_of(
+            &["a housing shortage in a city is not a thing you can zone away quickly"; 6],
+        );
+        let config = ContrastConfig::default()
+            .prior(Prior::neutral(90, 90))
+            .min_count(2);
+
+        let unfiltered =
+            ContrastModel::fit("t", &a, &b, None, &Tokenizer::default(), &config).unwrap();
+        let vocabulary: Vec<&str> = unfiltered.terms().iter().map(|t| t.text.as_str()).collect();
+        assert!(
+            vocabulary.contains(&"compiler") && vocabulary.contains(&"housing"),
+            "unfiltered contrast lets topic words in: {vocabulary:?}"
+        );
+
+        let filtered = ContrastModel::fit(
+            "t",
+            &a,
+            &b,
+            None,
+            &Tokenizer::default(),
+            &config.clone().function_words(),
+        )
+        .unwrap();
+        let filtered_vocabulary: Vec<&str> =
+            filtered.terms().iter().map(|t| t.text.as_str()).collect();
+        assert!(!filtered_vocabulary.contains(&"compiler"));
+        assert!(!filtered_vocabulary.contains(&"housing"));
+        for term in filtered.terms() {
+            assert!(
+                crate::feature::mfw::FUNCTION_WORDS.contains(&term.text.as_str()),
+                "content word {:?} survived the function-word filter",
+                term.text
+            );
+        }
+        assert!(filtered.vocab_size() > 0);
+        assert!(filtered.describe().contains("FunctionWords"));
+    }
+
+    #[test]
+    fn the_function_word_filter_requires_every_token_of_a_phrase() {
+        let filter = TermFilter::FunctionWords;
+        assert!(filter.accepts("of"));
+        assert!(filter.accepts("of the"));
+        assert!(!filter.accepts("of housing"));
+        assert!(!filter.accepts("ghidra"));
+        assert!(TermFilter::All.accepts("ghidra"));
+        assert!(TermFilter::Explicit {
+            terms: vec!["ghidra".into()]
+        }
+        .accepts("ghidra"));
     }
 
     #[test]
@@ -857,7 +1014,10 @@ mod tests {
             "private identifiers leaked: {terms:?}"
         );
         assert!(model.culled() > 0);
-        assert!(model.privacy().is_some(), "private corpus must cull by default");
+        assert!(
+            model.privacy().is_some(),
+            "private corpus must cull by default"
+        );
     }
 
     #[test]
@@ -870,7 +1030,9 @@ mod tests {
             &b,
             None,
             &Tokenizer::default(),
-            &ContrastConfig::default().prior(Prior::neutral(30, 30)).min_count(1),
+            &ContrastConfig::default()
+                .prior(Prior::neutral(30, 30))
+                .min_count(1),
         )
         .unwrap();
         let vocab = model.into_feature(1.0).unwrap();
@@ -890,7 +1052,9 @@ mod tests {
             None,
             &Tokenizer::default(),
             &[Universe::Words, Universe::WordBigrams],
-            &ContrastConfig::default().prior(Prior::neutral(60, 60)).min_count(1),
+            &ContrastConfig::default()
+                .prior(Prior::neutral(60, 60))
+                .min_count(1),
         )
         .unwrap();
         assert_eq!(set.models().len(), 2);

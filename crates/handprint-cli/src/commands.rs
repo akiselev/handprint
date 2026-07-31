@@ -4,9 +4,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context, Result};
 use handprint_core::compare::DistanceMetric;
-use handprint_core::contrast::{
-    ContrastConfig, ContrastModel, Prior, PrivacyCull, Side, Variance,
-};
+use handprint_core::contrast::{ContrastConfig, ContrastModel, Prior, PrivacyCull, Side, Variance};
 use handprint_core::critique::{Critic, Mode};
 use handprint_core::feature::lexicon::Severity;
 use handprint_core::feature::vocab::Universe;
@@ -72,9 +70,8 @@ fn fit(command: Command) -> Result<i32> {
         builder = builder.note(note);
     }
     if private {
-        builder = builder.note(
-            "fitted from a corpus flagged private; review the vocabulary before publishing",
-        );
+        builder = builder
+            .note("fitted from a corpus flagged private; review the vocabulary before publishing");
     }
     for feature in &features {
         builder = match feature {
@@ -206,7 +203,10 @@ fn profile(command: Command) -> Result<i32> {
     ranked.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
 
     println!("\nmost unusual dimensions:");
-    println!("{:<36} {:>10} {:>10} {:>8}", "dimension", "observed", "corpus", "z");
+    println!(
+        "{:<36} {:>10} {:>10} {:>8}",
+        "dimension", "observed", "corpus", "z"
+    );
     for (z, index) in ranked.into_iter().take(top) {
         let dim = &reference.dims()[index];
         let stats = &reference.stats()[index];
@@ -215,7 +215,11 @@ fn profile(command: Command) -> Result<i32> {
             reference.name_of(dim.symbol),
             profile.raw()[index],
             stats.mean,
-            if profile.raw()[index] < stats.mean { -z } else { z }
+            if profile.raw()[index] < stats.mean {
+                -z
+            } else {
+                z
+            }
         );
     }
     Ok(0)
@@ -291,7 +295,10 @@ fn compare(command: Command) -> Result<i32> {
     }
 
     println!("\ntop contributions:");
-    println!("{:<36} {:>10} {:>10} {:>10}", "dimension", "a", "b", "share");
+    println!(
+        "{:<36} {:>10} {:>10} {:>10}",
+        "dimension", "a", "b", "share"
+    );
     for c in contributions.iter().take(top) {
         println!(
             "{:<36} {:>10.4} {:>10.4} {:>+10.6}",
@@ -373,7 +380,10 @@ fn rank(command: Command) -> Result<i32> {
     if rows.iter().all(|(_, _, a)| a.is_none()) {
         println!("{}", uncalibrated_note(&reference, metric));
     }
-    println!("{:<28} {:>12} {:>14} {:>14}", "candidate", "distance", "p_vs_unrel", "p_same_author");
+    println!(
+        "{:<28} {:>12} {:>14} {:>14}",
+        "candidate", "distance", "p_vs_unrel", "p_same_author"
+    );
     for (label, distance, assessment) in &rows {
         match assessment {
             Some(a) => println!(
@@ -424,7 +434,8 @@ fn verify(command: Command) -> Result<i32> {
         seed,
         ..Default::default()
     };
-    let score = handprint_core::verify::verify(&reference, &query_profile, &targets, &pool, &config)?;
+    let score =
+        handprint_core::verify::verify(&reference, &query_profile, &targets, &pool, &config)?;
 
     if json {
         println!("{}", serde_json::to_string_pretty(&score)?);
@@ -451,6 +462,7 @@ fn contrast(command: Command) -> Result<i32> {
         b,
         background,
         universe,
+        function_words,
         alpha0,
         reduced_variance,
         min_count,
@@ -494,6 +506,9 @@ fn contrast(command: Command) -> Result<i32> {
     if private {
         config = config.privacy(PrivacyCull::default());
     }
+    if function_words {
+        config = config.function_words();
+    }
 
     let model = ContrastModel::fit(
         "contrast",
@@ -517,6 +532,12 @@ fn contrast(command: Command) -> Result<i32> {
              from different universes against each other.",
             universe.as_str()
         );
+        if !function_words {
+            println!(
+                "If these corpora are about different subjects, much of what you see above is \
+                 topic rather than style. Re-run with --function-words for the topic-robust view."
+            );
+        }
     }
 
     if let Some(path) = out {
@@ -533,7 +554,10 @@ fn contrast(command: Command) -> Result<i32> {
 }
 
 fn print_terms(terms: &[&handprint_core::contrast::TermStats]) {
-    println!("{:<28} {:>8} {:>10} {:>8} {:>8}", "term", "z", "delta", "count_a", "count_b");
+    println!(
+        "{:<28} {:>8} {:>10} {:>8} {:>8}",
+        "term", "z", "delta", "count_a", "count_b"
+    );
     for term in terms {
         println!(
             "{:<28} {:>+8.2} {:>+10.4} {:>8} {:>8}",
@@ -542,7 +566,11 @@ fn print_terms(terms: &[&handprint_core::contrast::TermStats]) {
     }
 }
 
-fn count_terms(corpus: &Corpus, tokenizer: &handprint_core::Tokenizer, universe: Universe) -> usize {
+fn count_terms(
+    corpus: &Corpus,
+    tokenizer: &handprint_core::Tokenizer,
+    universe: Universe,
+) -> usize {
     corpus
         .documents()
         .map(|d| universe.extract(&d.analyze(tokenizer)).len())
@@ -581,13 +609,9 @@ fn explain(command: Command) -> Result<i32> {
     let text = io::read_text(input.as_deref())?;
     let profile = reference.profile_tracked(&Document::new(text.clone()));
 
-    let target = reference
-        .exemplars()
-        .first()
-        .cloned()
-        .ok_or_else(|| anyhow::anyhow!(
-            "this reference stores no exemplar profiles; refit with --exemplars N"
-        ))?;
+    let target = reference.exemplars().first().cloned().ok_or_else(|| {
+        anyhow::anyhow!("this reference stores no exemplar profiles; refit with --exemplars N")
+    })?;
     let comparison = reference.compare_with(&profile, &target, reference.metric())?;
     let contributions = comparison.contributions();
 
@@ -718,7 +742,10 @@ fn critique(command: Command) -> Result<i32> {
 
     // Project configuration fills in whatever the flags did not.
     let discovered = match &config {
-        Some(path) => Some((Config::load(path)?, path.parent().unwrap_or(Path::new(".")).to_path_buf())),
+        Some(path) => Some((
+            Config::load(path)?,
+            path.parent().unwrap_or(Path::new(".")).to_path_buf(),
+        )),
         None => Config::discover(Path::new("."))?,
     };
 
@@ -804,7 +831,12 @@ fn critique(command: Command) -> Result<i32> {
                 .first()
                 .cloned()
                 .ok_or_else(|| anyhow::anyhow!("this reference stores no exemplar profiles"))?;
-            Critic::with_config(&reference, vec![toward], Some(away_profile), critique_config)
+            Critic::with_config(
+                &reference,
+                vec![toward],
+                Some(away_profile),
+                critique_config,
+            )
         }
     };
 
@@ -928,7 +960,11 @@ fn hn(command: HnCommand) -> Result<i32> {
         }
         handprint_data::jsonl::write(&out, &records)?;
         let words: usize = records.iter().map(handprint_data::Record::word_count).sum();
-        println!("{} comment(s), {words} words -> {}", records.len(), out.display());
+        println!(
+            "{} comment(s), {words} words -> {}",
+            records.len(),
+            out.display()
+        );
         println!(
             "Comments at or after the cut-off were dropped: post-2022 forum text is \
              contaminated with LLM-assisted writing, which is exactly what a human reference \

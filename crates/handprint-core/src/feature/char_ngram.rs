@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{ratio, DimInfo, Family, Feature, FitContext, FittedFeature, Unit};
 use crate::error::{Error, Result};
-use crate::text::{tokenize::is_punctuation, Analysis, ScoringText, Span};
+use crate::text::{Analysis, ScoringText, Span};
 use crate::vector::{Interner, Symbol, VectorBuilder};
 
 /// Where an n-gram sits relative to word and punctuation boundaries.
@@ -121,7 +121,6 @@ impl NgramTypes {
     }
 }
 
-
 /// Configuration for the character n-gram family.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CharNgrams {
@@ -196,12 +195,27 @@ pub struct FittedCharNgrams {
     /// The n-gram order each entry of `dims` came from.
     dim_orders: Vec<usize>,
     orders: Vec<usize>,
-    /// Maps a key (`"3\u{1}prefix\u{1}sti"` or `"3\u{1}sti"` untyped) to its
+    /// One bucket per `(order, type)`, each mapping a bare n-gram string to its
     /// symbol.
-    lookup: HashMap<String, Symbol>,
+    ///
+    /// Bucketing rather than one map keyed by `"order\u{1}type\u{1}gram"`
+    /// matters more than it looks: `transform` performs one lookup per n-gram
+    /// *occurrence*, so a composite key would mean a `String` allocation per
+    /// character of every document profiled. Bucketing lets the lookup borrow
+    /// the n-gram straight out of the scan buffer.
+    buckets: Vec<Bucket>,
     typed: bool,
     types: NgramTypes,
     lowercase: bool,
+}
+
+/// The vocabulary selected for one `(order, type)` pair.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+struct Bucket {
+    order: usize,
+    /// `None` when the feature is untyped.
+    ty: Option<NgramType>,
+    grams: HashMap<String, Symbol>,
 }
 
 impl FittedCharNgrams {
@@ -210,18 +224,16 @@ impl FittedCharNgrams {
 
     /// How many n-gram dimensions were selected.
     pub fn vocab_len(&self) -> usize {
-        self.lookup.len()
+        self.buckets.iter().map(|b| b.grams.len()).sum()
     }
-}
 
-/// Separator inside lookup keys; cannot appear in text because the tokenizer
-/// drops control characters from the scoring view.
-const SEP: char = '\u{1}';
-
-fn key(order: usize, ty: Option<NgramType>, gram: &str) -> String {
-    match ty {
-        Some(ty) => format!("{order}{SEP}{}{SEP}{gram}", ty.as_str()),
-        None => format!("{order}{SEP}{gram}"),
+    /// The symbol for one typed n-gram, or `None` if it is not in the fitted
+    /// vocabulary.
+    fn lookup(&self, order: usize, ty: Option<NgramType>, gram: &str) -> Option<Symbol> {
+        self.buckets
+            .iter()
+            .find(|b| b.order == order && b.ty == ty)
+            .and_then(|b| b.grams.get(gram).copied())
     }
 }
 
@@ -265,12 +277,18 @@ impl Feature for CharNgrams {
 
         let mut dims = Vec::new();
         let mut dim_orders = Vec::new();
-        let mut lookup = HashMap::new();
+        let mut buckets: Vec<Bucket> = Vec::new();
+
+        // One scan per document, reused across every order.
+        let scans: Vec<(&crate::text::ScoringText, Scan)> = ctx
+            .analyses()
+            .map(|a| (a.scoring(), Scan::new(a.scoring(), self.lowercase)))
+            .collect();
 
         for &order in &self.orders {
             let mut counts: HashMap<(Option<NgramType>, String), usize> = HashMap::new();
-            for analysis in ctx.analyses() {
-                self.walk(analysis.scoring(), order, |ty, gram, _span| {
+            for (scoring, scan) in &scans {
+                walk_scan(scan, scoring, order, |ty, gram, _span| {
                     if self.typed && !self.types.contains(ty) {
                         return;
                     }
@@ -278,15 +296,29 @@ impl Feature for CharNgrams {
                     *counts.entry((tagged, gram.to_owned())).or_insert(0) += 1;
                 });
             }
-            let mut ranked: Vec<((Option<NgramType>, String), usize)> = counts.into_iter().collect();
+            let mut ranked: Vec<((Option<NgramType>, String), usize)> =
+                counts.into_iter().collect();
             ranked.sort_unstable_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
             ranked.truncate(self.top);
 
             for ((ty, gram), _) in ranked {
                 let sym = interner.intern(&dim_name(order, ty, &gram));
-                dims.push(DimInfo::new(sym, Family::CharNgram, Unit::RelativeFrequency));
+                dims.push(DimInfo::new(
+                    sym,
+                    Family::CharNgram,
+                    Unit::RelativeFrequency,
+                ));
                 dim_orders.push(order);
-                lookup.insert(key(order, ty, &gram), sym);
+                match buckets.iter_mut().find(|b| b.order == order && b.ty == ty) {
+                    Some(bucket) => {
+                        bucket.grams.insert(gram, sym);
+                    }
+                    None => {
+                        let mut grams = HashMap::new();
+                        grams.insert(gram, sym);
+                        buckets.push(Bucket { order, ty, grams });
+                    }
+                }
             }
         }
 
@@ -305,7 +337,7 @@ impl Feature for CharNgrams {
             dims,
             dim_orders,
             orders: self.orders.clone(),
-            lookup,
+            buckets,
             typed: self.typed,
             types: self.types.clone(),
             lowercase: self.lowercase,
@@ -326,17 +358,18 @@ impl FittedFeature for FittedCharNgrams {
         let mut values: HashMap<Symbol, f64> = HashMap::new();
         let mut spans: Vec<(Symbol, Span)> = Vec::new();
         let mut produced: Vec<usize> = Vec::new();
+        let scan = Scan::new(analysis.scoring(), self.lowercase);
 
         for &order in &self.orders {
             let mut counts: HashMap<Symbol, usize> = HashMap::new();
             let mut total = 0usize;
-            self.walk_fitted(analysis.scoring(), order, |ty, gram, span| {
+            walk_scan(&scan, analysis.scoring(), order, |ty, gram, span| {
                 total += 1;
                 if self.typed && !self.types.contains(ty) {
                     return;
                 }
                 let tagged = if self.typed { Some(ty) } else { None };
-                if let Some(&sym) = self.lookup.get(&key(order, tagged, gram)) {
+                if let Some(sym) = self.lookup(order, tagged, gram) {
                     *counts.entry(sym).or_insert(0) += 1;
                     spans.push((sym, span));
                 }
@@ -365,28 +398,6 @@ impl FittedFeature for FittedCharNgrams {
     }
 }
 
-impl CharNgrams {
-    fn walk(
-        &self,
-        scoring: &ScoringText,
-        order: usize,
-        f: impl FnMut(NgramType, &str, Span),
-    ) {
-        walk_ngrams(scoring, order, self.lowercase, f);
-    }
-}
-
-impl FittedCharNgrams {
-    fn walk_fitted(
-        &self,
-        scoring: &ScoringText,
-        order: usize,
-        f: impl FnMut(NgramType, &str, Span),
-    ) {
-        walk_ngrams(scoring, order, self.lowercase, f);
-    }
-}
-
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum CharClass {
     Word,
@@ -399,8 +410,6 @@ fn class_of(c: char) -> CharClass {
         CharClass::Space
     } else if c.is_alphanumeric() {
         CharClass::Word
-    } else if is_punctuation(c) {
-        CharClass::Punct
     } else {
         // Symbols, emoji and anything else behave like punctuation for typing
         // purposes: they break words the same way.
@@ -408,43 +417,76 @@ fn class_of(c: char) -> CharClass {
     }
 }
 
-/// Walk every n-gram of `order`, classifying each by position.
-fn walk_ngrams(
-    scoring: &ScoringText,
-    order: usize,
-    lowercase: bool,
-    mut f: impl FnMut(NgramType, &str, Span),
-) {
-    let text = scoring.as_str();
-    let folded: String = if lowercase {
-        text.to_lowercase()
-    } else {
-        text.to_owned()
-    };
-    let chars: Vec<char> = folded.chars().collect();
-    if chars.len() < order || order == 0 {
-        return;
-    }
-    let classes: Vec<CharClass> = chars.iter().copied().map(class_of).collect();
-    // Character-index → byte offset in the *original* scoring text, so spans
-    // survive a case fold that changes byte lengths.
-    let src_starts: Vec<usize> = text.char_indices().map(|(i, _)| i).collect();
-    let usable = src_starts.len().min(chars.len());
-    if usable < order {
-        return;
+/// Everything an n-gram walk needs from a document, computed once.
+///
+/// The naive shape recomputes the case fold, the character vector, the class
+/// vector and the offset table for every n-gram order. With the default
+/// `3..=4` that is twice the work for no reason, and it made this the slowest
+/// family in the pipeline by a wide margin.
+struct Scan {
+    chars: Vec<char>,
+    classes: Vec<CharClass>,
+    /// Byte offset in the scoring text for each character index.
+    src_starts: Vec<usize>,
+    text_len: usize,
+}
+
+impl Scan {
+    fn new(scoring: &ScoringText, lowercase: bool) -> Scan {
+        let text = scoring.as_str();
+        let chars: Vec<char> = if lowercase {
+            // ASCII case folding is a byte operation; the Unicode path allocates
+            // and consults tables for every character.
+            if text.is_ascii() {
+                text.chars().map(|c| c.to_ascii_lowercase()).collect()
+            } else {
+                text.to_lowercase().chars().collect()
+            }
+        } else {
+            text.chars().collect()
+        };
+        let classes: Vec<CharClass> = chars.iter().copied().map(class_of).collect();
+        let src_starts: Vec<usize> = text.char_indices().map(|(i, _)| i).collect();
+        Scan {
+            chars,
+            classes,
+            src_starts,
+            text_len: text.len(),
+        }
     }
 
+    /// Characters usable for n-gram extraction.
+    ///
+    /// A case fold can change the character count (`\u{0130}` lowercases to two
+    /// characters), so spans are only trustworthy up to the shorter of the two.
+    fn usable(&self) -> usize {
+        self.src_starts.len().min(self.chars.len())
+    }
+}
+
+/// Walk every n-gram of `order` over a prepared scan, classifying each by
+/// position.
+fn walk_scan(
+    scan: &Scan,
+    scoring: &ScoringText,
+    order: usize,
+    mut f: impl FnMut(NgramType, &str, Span),
+) {
+    let usable = scan.usable();
+    if order == 0 || usable < order {
+        return;
+    }
     let mut buf = String::with_capacity(order * 4);
     for i in 0..=(usable - order) {
         buf.clear();
-        buf.extend(&chars[i..i + order]);
-        let ty = classify(&classes, i, order);
-        let start = src_starts[i];
-        let end = if i + order < src_starts.len() {
-            src_starts[i + order]
-        } else {
-            text.len()
-        };
+        buf.extend(&scan.chars[i..i + order]);
+        let ty = classify(&scan.classes, i, order);
+        let start = scan.src_starts[i];
+        let end = scan
+            .src_starts
+            .get(i + order)
+            .copied()
+            .unwrap_or(scan.text_len);
         f(ty, &buf, scoring.to_source_span(Span::new(start, end)));
     }
 }
@@ -491,8 +533,9 @@ mod tests {
 
     fn types_of(text: &str, order: usize) -> Vec<(String, NgramType)> {
         let scoring = ScoringText::new(text);
+        let scan = Scan::new(&scoring, true);
         let mut out = Vec::new();
-        walk_ngrams(&scoring, order, true, |ty, gram, _| {
+        walk_scan(&scan, &scoring, order, |ty, gram, _| {
             out.push((gram.to_owned(), ty))
         });
         out

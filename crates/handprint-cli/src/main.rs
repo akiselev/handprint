@@ -282,6 +282,12 @@ pub enum Command {
         /// Term universe: words, bigrams, trigrams, or `chars:N`.
         #[arg(long, default_value = "words")]
         universe: String,
+        /// Restrict the vocabulary to closed-class function words.
+        ///
+        /// Use this whenever the two corpora were not written about the same
+        /// subject: an unrestricted contrast surfaces the topic, not the style.
+        #[arg(long)]
+        function_words: bool,
         /// Total prior mass. Defaults to `min(n_a, n_b)`, the neutral start.
         #[arg(long)]
         alpha0: Option<f64>,

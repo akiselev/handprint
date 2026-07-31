@@ -40,8 +40,8 @@ pub fn load_corpus(path: &Path, private: bool) -> Result<Corpus> {
 }
 
 fn load_jsonl(path: &Path) -> Result<Corpus> {
-    let (records, bad) = handprint_data::jsonl::read(path)
-        .with_context(|| format!("reading {}", path.display()))?;
+    let (records, bad) =
+        handprint_data::jsonl::read(path).with_context(|| format!("reading {}", path.display()))?;
     if bad > 0 {
         eprintln!(
             "warning: skipped {bad} unparseable line(s) in {}",

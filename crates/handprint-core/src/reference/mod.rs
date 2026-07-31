@@ -443,7 +443,11 @@ impl Reference {
             z_a: self.vector_in(a, Space::ZScore),
             z_b: self.vector_in(b, Space::ZScore),
             dims: self.dims.clone(),
-            names: self.dims.iter().map(|d| self.name_of(d.symbol).to_owned()).collect(),
+            names: self
+                .dims
+                .iter()
+                .map(|d| self.name_of(d.symbol).to_owned())
+                .collect(),
         })
     }
 
@@ -462,7 +466,11 @@ impl Reference {
                 assessment: comparison.assessment,
             });
         }
-        out.sort_by(|a, b| a.distance.partial_cmp(&b.distance).unwrap_or(std::cmp::Ordering::Equal));
+        out.sort_by(|a, b| {
+            a.distance
+                .partial_cmp(&b.distance)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         Ok(out)
     }
 }
@@ -1051,7 +1059,9 @@ mod tests {
             .fit(&corpus())
             .unwrap();
         let doc = Document::new("Some text to profile.");
-        let err = r1.compare(&r1.profile(&doc), &r2.profile(&doc)).unwrap_err();
+        let err = r1
+            .compare(&r1.profile(&doc), &r2.profile(&doc))
+            .unwrap_err();
         assert!(matches!(err, Error::ReferenceMismatch { .. }));
     }
 
@@ -1126,9 +1136,7 @@ mod tests {
         let query = r.profile(&c.author(&"alice".into()).unwrap()[0]);
         let alice = r.profile(&c.author(&"alice".into()).unwrap()[2]);
         let bob = r.profile(&c.author(&"bob".into()).unwrap()[0]);
-        let ranked = r
-            .rank(&query, [("bob", &bob), ("alice", &alice)])
-            .unwrap();
+        let ranked = r.rank(&query, [("bob", &bob), ("alice", &alice)]).unwrap();
         assert_eq!(ranked[0].label, "alice");
     }
 
