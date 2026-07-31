@@ -61,42 +61,19 @@ use crate::vector::{Interner, Symbol, VectorBuilder};
 pub const SYNTAX_LISTS_VERSION: &str = "2026.08";
 
 /// Auxiliaries and modals: a sentence containing one has a finite verb.
+#[rustfmt::skip]
 const AUXILIARIES: &[&str] = &[
-    "am", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does",
-    "did", "can", "could", "will", "would", "shall", "should", "may", "might", "must", "ought",
-    "'s", "'re", "'ve", "'ll", "'d", "'m",
+    "am", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do",
+    "does", "did", "can", "could", "will", "would", "shall", "should", "may", "might", "must",
+    "ought", "'s", "'re", "'ve", "'ll", "'d", "'m",
 ];
 
 /// Subordinating conjunctions.
+#[rustfmt::skip]
 const SUBORDINATORS: &[&str] = &[
-    "although",
-    "though",
-    "because",
-    "since",
-    "unless",
-    "until",
-    "while",
-    "whilst",
-    "whereas",
-    "if",
-    "whether",
-    "before",
-    "after",
-    "once",
-    "when",
-    "whenever",
-    "where",
-    "wherever",
-    "as",
-    "than",
-    "that",
-    "who",
-    "whom",
-    "whose",
-    "which",
-    "lest",
-    "provided",
-    "supposing",
+    "although", "though", "because", "since", "unless", "until", "while", "whilst", "whereas",
+    "if", "whether", "before", "after", "once", "when", "whenever", "where", "wherever", "as",
+    "than", "that", "who", "whom", "whose", "which", "lest", "provided", "supposing",
     "albeit",
 ];
 
@@ -104,75 +81,37 @@ const SUBORDINATORS: &[&str] = &[
 const COORDINATORS: &[&str] = &["and", "but", "or", "nor", "for", "yet", "so"];
 
 /// Words ending in `-ly` that are not manner adverbs.
+#[rustfmt::skip]
 const LY_STOPLIST: &[&str] = &[
-    "only",
-    "early",
-    "family",
-    "reply",
-    "supply",
-    "apply",
-    "imply",
-    "rely",
-    "ugly",
-    "silly",
-    "holy",
-    "jolly",
-    "belly",
-    "rally",
-    "really",
-    "ally",
-    "bully",
-    "fully",
-    "hilly",
-    "dolly",
-    "folly",
-    "gully",
-    "jelly",
-    "lily",
-    "melancholy",
-    "monopoly",
-    "assembly",
-    "italy",
-    "july",
-    "anomaly",
-    "panoply",
-    "multiply",
-    "simply",
+    "only", "early", "family", "reply", "supply", "apply", "imply", "rely", "ugly", "silly",
+    "holy", "jolly", "belly", "rally", "really", "ally", "bully", "fully", "hilly", "dolly",
+    "folly", "gully", "jelly", "lily", "melancholy", "monopoly", "assembly", "italy", "july",
+    "anomaly", "panoply", "multiply", "simply",
 ];
 
 /// A small closed interjection list — the Thompson marker.
+#[rustfmt::skip]
 const INTERJECTIONS: &[&str] = &[
-    "ah", "aha", "ahem", "alas", "argh", "aw", "bah", "blah", "boo", "bravo", "christ", "damn",
-    "eh", "gee", "gosh", "ha", "hah", "hey", "hm", "hmm", "huh", "hurrah", "jeez", "jesus", "oh",
-    "oho", "ooh", "oops", "ouch", "ow", "phew", "pff", "psh", "shh", "ugh", "uh", "um", "umm",
-    "well", "whoa", "whoops", "wow", "yay", "yeah", "yeesh", "yikes", "yo", "yow",
+    "ah", "aha", "ahem", "alas", "argh", "aw", "bah", "blah", "boo", "bravo", "christ",
+    "damn", "eh", "gee", "gosh", "ha", "hah", "hey", "hm", "hmm", "huh", "hurrah", "jeez",
+    "jesus", "oh", "oho", "ooh", "oops", "ouch", "ow", "phew", "pff", "psh", "shh", "ugh",
+    "uh", "um", "umm", "well", "whoa", "whoops", "wow", "yay", "yeah", "yeesh", "yikes", "yo",
+    "yow",
 ];
 
 /// Person deixis, LIWC-style. Duplicated with `biber:pron:*` by design — see
 /// the module docs' dedupe rule.
+#[rustfmt::skip]
 const P1S: &[&str] = &[
     "i", "me", "my", "mine", "myself", "i'm", "i'll", "i've", "i'd",
 ];
+#[rustfmt::skip]
 const P2: &[&str] = &[
-    "you",
-    "your",
-    "yours",
-    "yourself",
-    "yourselves",
-    "you're",
-    "you'll",
-    "you've",
+    "you", "your", "yours", "yourself", "yourselves", "you're", "you'll", "you've",
 ];
+#[rustfmt::skip]
 const P1P: &[&str] = &[
-    "we",
-    "us",
-    "our",
-    "ours",
-    "ourselves",
-    "we're",
-    "we'll",
-    "we've",
-    "let's",
+    "we", "us", "our", "ours", "ourselves", "we're", "we'll", "we've", "let's",
 ];
 
 /// A background frequency below which a word counts as rare.
@@ -667,27 +606,23 @@ impl FittedSyntax {
 /// Fewest scored words before a concreteness mean means anything.
 const MIN_SCORED_WORDS: usize = 10;
 
-/// Subjects after which an `-s` word is a verb rather than a plural noun.
+/// Words after which an `-s` form is a plural noun rather than a verb.
 ///
-/// "he barks" is finite; "no windows" is not, and a bare `-s` rule cannot tell
-/// them apart. Requiring a pronoun-like subject immediately before is the
-/// cheapest rule that gets the common cases right.
-const S_SUBJECTS: &[&str] = &[
-    "he",
-    "she",
-    "it",
-    "who",
-    "that",
-    "which",
-    "one",
-    "everyone",
-    "someone",
-    "nobody",
-    "everything",
-    "something",
-    "nothing",
-    "this",
-    "there",
+/// "No windows." is a fragment and "the analysis delves" is not, and a bare
+/// `-s` rule cannot tell them apart. The discriminator that works without a
+/// tagger is what comes *before*: a plural noun follows a determiner, a
+/// quantifier or a preposition, and a present-tense verb follows its subject.
+/// Listing the closed class is cheaper and more accurate than listing the open
+/// one.
+#[rustfmt::skip]
+const NOT_A_SUBJECT: &[&str] = &[
+    "the", "a", "an", "this", "that", "these", "those", "my", "your", "his", "her", "its",
+    "our", "their", "no", "any", "some", "all", "both", "few", "many", "much", "most",
+    "several", "such", "each", "every", "other", "another", "of", "in", "on", "at", "by",
+    "for", "with", "from", "into", "onto", "upon", "about", "over", "under", "between",
+    "through", "during", "without", "within", "against", "among", "across", "behind",
+    "beyond", "toward", "towards", "and", "or", "but", "nor", "than", "as", "like", "more",
+    "less", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
 ];
 
 /// Common irregular past forms, which no suffix rule can see.
@@ -708,14 +643,15 @@ const IRREGULAR_FINITE: &[&str] = &[
 /// Whether a sentence contains a finite verb.
 ///
 /// An auxiliary or modal settles it, as does a common irregular past form.
-/// Otherwise the rule looks for `-ed`, or `-s` immediately after a
-/// pronoun-like subject.
+/// Otherwise the rule looks for `-ed`, or an `-s` form that is *not* preceded
+/// by a determiner, quantifier or preposition — see [`NOT_A_SUBJECT`].
 ///
 /// Documented failure modes: an imperative reads as a fragment (it has no
 /// finite subject-verb pair, which is arguably right); a simple-present plural
-/// with no auxiliary ("the machines scream") reads as a fragment; and a
-/// fragment headed by a bare participle reads as a sentence. All three are the
-/// same on the corpus side and the draft side, which is what a rate needs.
+/// with no auxiliary and no inflection ("the machines scream") reads as a
+/// fragment, because nothing in the surface marks it; and a fragment headed by
+/// a bare participle reads as a sentence. All three are the same on the corpus
+/// side and the draft side, which is what a rate needs.
 fn has_finite_verb(words: &[&str]) -> bool {
     if words
         .iter()
@@ -733,7 +669,7 @@ fn has_finite_verb(words: &[&str]) -> bool {
             && !w.ends_with("ss")
             && !w.ends_with("us")
             && i > 0
-            && S_SUBJECTS.contains(&words[i - 1])
+            && !NOT_A_SUBJECT.contains(&words[i - 1])
         {
             return true;
         }
@@ -836,6 +772,24 @@ mod tests {
         assert!((value(text, "syn:fragment_rate") - 50.0).abs() < 1e-9);
         let controls = "The man walked home. It was cold. She opened the door. He waited.";
         assert_eq!(value(controls, "syn:fragment_rate"), 0.0);
+    }
+
+    #[test]
+    fn a_present_tense_verb_after_its_subject_is_finite() {
+        // The discriminator that works without a tagger: "No windows." is a
+        // fragment and "the analysis delves" is not, and what separates them is
+        // the word before the `-s`.
+        assert!(has_finite_verb(&[
+            "the", "analysis", "delves", "into", "it"
+        ]));
+        assert!(has_finite_verb(&["the", "dog", "barks"]));
+        assert!(!has_finite_verb(&["no", "windows"]));
+        assert!(!has_finite_verb(&["the", "numbers"]));
+        assert!(!has_finite_verb(&["a", "handful", "of", "reasons"]));
+        // Ordinary present-tense prose is not 100% fragments.
+        let prose = "This analysis delves into the details. The report covers it. \
+                     The system handles the load. The worker reads the value.";
+        assert_eq!(value(prose, "syn:fragment_rate"), 0.0);
     }
 
     #[test]

@@ -18,8 +18,9 @@
 //! dictionary's version string would defeat it silently — a reference fitted on
 //! 134k entries would load happily against 600 and score differently.
 //!
-//! Swapping in the real dictionary is a matter of replacing [`ENTRIES`] and
-//! bumping [`DICT_VERSION`]; every consumer already refuses mismatched versions.
+//! Swapping in the real dictionary is a matter of replacing this module's
+//! entry table and bumping [`DICT_VERSION`]; every consumer already refuses
+//! mismatched versions.
 //!
 //! # Accuracy
 //!
@@ -136,8 +137,9 @@ pub fn stress(word: &str) -> Option<&'static str> {
 
 /// A rhyme key: two words rhyme when their keys are equal.
 ///
-/// `None` for a word the table does not cover. That is the honest answer — see
-/// [`RHYMES`] for why a letter-based fallback would be worse than none.
+/// `None` for a word the table does not cover. That is the honest answer: a
+/// letter-based fallback fires on "though/rough" and misses "high/lie", so it
+/// would be measuring spelling and calling it sound.
 pub fn rhyme_key(word: &str) -> Option<&'static str> {
     RHYMES.iter().find(|(w, _)| *w == word).map(|(_, key)| *key)
 }

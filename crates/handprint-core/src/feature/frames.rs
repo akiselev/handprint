@@ -41,45 +41,21 @@ use crate::util;
 use crate::vector::{Interner, Symbol, VectorBuilder};
 
 /// Negators that make a vehicle a joke rather than a comparison.
+#[rustfmt::skip]
 const NEGATORS: &[&str] = &[
-    "not",
-    "n't",
-    "'t",
-    "never",
-    "no",
-    "nothing",
-    "nobody",
-    "none",
-    "nor",
-    "neither",
-    "hardly",
-    "barely",
-    "scarcely",
-    "don't",
-    "doesn't",
-    "didn't",
-    "isn't",
-    "aren't",
-    "wasn't",
-    "weren't",
-    "can't",
-    "cannot",
-    "won't",
-    "wouldn't",
-    "couldn't",
-    "shouldn't",
-    "hasn't",
-    "haven't",
-    "hadn't",
-    "ain't",
+    "not", "n't", "'t", "never", "no", "nothing", "nobody", "none", "nor", "neither",
+    "hardly", "barely", "scarcely", "don't", "doesn't", "didn't", "isn't", "aren't", "wasn't",
+    "weren't", "can't", "cannot", "won't", "wouldn't", "couldn't", "shouldn't", "hasn't",
+    "haven't", "hadn't", "ain't",
 ];
 
 /// Determiners that can open a `like` vehicle. Requiring one is what keeps the
 /// verb `like` ("I like it") and the discourse particle ("it was, like, fine")
 /// out of the count.
+#[rustfmt::skip]
 const VEHICLE_DETERMINERS: &[&str] = &[
-    "a", "an", "the", "some", "any", "every", "one", "two", "three", "his", "her", "its", "their",
-    "our", "my", "your", "that", "this", "those", "these",
+    "a", "an", "the", "some", "any", "every", "one", "two", "three", "his", "her", "its",
+    "their", "our", "my", "your", "that", "this", "those", "these",
 ];
 
 /// Clause-final punctuation that ends a vehicle.

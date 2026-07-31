@@ -232,7 +232,10 @@ const CONCRETENESS: &[NormRow] = &[
     ("disappointment", 2.0), ("expectation", 1.8), ("responsibility", 1.9),
 ];
 
-/// The bundled concreteness demonstration table. See [`CONCRETENESS`].
+/// The bundled concreteness demonstration table.
+///
+/// About a hundred hand-scored words on the 1-5 Brysbaert scale — *not* the
+/// 37k-lemma norms, which are loader-only under their likely CC-BY-NC terms.
 pub fn concreteness_stub() -> NormPack {
     NormPack {
         name: "concreteness-stub".into(),

@@ -14,7 +14,7 @@
 //! ordinary English and biased low on `-ion`/`-ial` endings. The CMU
 //! pronouncing dictionary is available behind the `verse` cargo feature and is
 //! opted into at fit time — never implicitly, because
-//! [`SyllableMethod`](crate::text::syllable::SyllableMethod) is recorded in the
+//! [`SyllableMethod`] is recorded in the
 //! fitted state and a build that cannot honor a recorded method fails loudly.
 //! A reference must profile identically no matter which cargo features built
 //! the binary reading it.
@@ -38,90 +38,30 @@ use crate::text::Analysis;
 use crate::vector::{Interner, Symbol, VectorBuilder};
 
 /// Be-forms that can head a passive.
+#[rustfmt::skip]
 const BE_FORMS: &[&str] = &[
     "be", "am", "is", "are", "was", "were", "been", "being", "get", "gets", "got", "gotten",
 ];
 
 /// Irregular past participles the `-ed` rule cannot see.
+#[rustfmt::skip]
 const IRREGULAR_PARTICIPLES: &[&str] = &[
-    "born",
-    "beaten",
-    "become",
-    "begun",
-    "bent",
-    "bound",
-    "bought",
-    "brought",
-    "built",
-    "burnt",
-    "caught",
-    "chosen",
-    "come",
-    "cut",
-    "dealt",
-    "done",
-    "drawn",
-    "driven",
-    "eaten",
-    "fallen",
-    "fed",
-    "felt",
-    "fought",
-    "found",
-    "given",
-    "gone",
-    "grown",
-    "held",
-    "hidden",
-    "hit",
-    "hurt",
-    "kept",
-    "known",
-    "laid",
-    "led",
-    "left",
-    "lent",
-    "lost",
-    "made",
-    "meant",
-    "met",
-    "paid",
-    "put",
-    "read",
-    "run",
-    "said",
-    "seen",
-    "sent",
-    "set",
-    "shot",
-    "shown",
-    "shut",
-    "slept",
-    "sold",
-    "sought",
-    "sown",
-    "spent",
-    "spoken",
-    "spread",
-    "stolen",
-    "struck",
-    "sung",
-    "sunk",
-    "taken",
-    "taught",
-    "thrown",
-    "told",
-    "understood",
-    "won",
-    "worn",
-    "written",
+    "born", "beaten", "become", "begun", "bent", "bound", "bought", "brought", "built",
+    "burnt", "caught", "chosen", "come", "cut", "dealt", "done", "drawn", "driven", "eaten",
+    "fallen", "fed", "felt", "fought", "found", "given", "gone", "grown", "held", "hidden",
+    "hit", "hurt", "kept", "known", "laid", "led", "left", "lent", "lost", "made", "meant",
+    "met", "paid", "put", "read", "run", "said", "seen", "sent", "set", "shot", "shown",
+    "shut", "slept", "sold", "sought", "sown", "spent", "spoken", "spread", "stolen",
+    "struck", "sung", "sunk", "taken", "taught", "thrown", "told", "understood", "won",
+    "worn", "written",
 ];
 
 /// Words ending in `-ed` that are not participles.
+#[rustfmt::skip]
 const ED_STOPLIST: &[&str] = &[
-    "indeed", "embed", "shed", "sled", "bed", "fed", "wed", "red", "need", "seed", "deed", "feed",
-    "breed", "creed", "greed", "speed", "freed", "agreed", "exceed", "succeed", "proceed",
-    "hundred", "sacred", "naked", "wicked", "united",
+    "indeed", "embed", "shed", "sled", "bed", "fed", "wed", "red", "need", "seed", "deed",
+    "feed", "breed", "creed", "greed", "speed", "freed", "agreed", "exceed", "succeed",
+    "proceed", "hundred", "sacred", "naked", "wicked", "united",
 ];
 
 /// Configuration for the readability family.
@@ -153,13 +93,9 @@ impl Default for Readability {
 }
 
 /// Grade dimensions, in emission order.
+#[rustfmt::skip]
 const GRADE_DIMS: &[&str] = &[
-    "flesch_kincaid",
-    "gunning_fog",
-    "smog",
-    "coleman_liau",
-    "ari",
-    "syllables_per_word",
+    "flesch_kincaid", "gunning_fog", "smog", "coleman_liau", "ari", "syllables_per_word",
 ];
 
 /// Fitted [`Readability`].

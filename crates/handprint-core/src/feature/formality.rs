@@ -54,20 +54,24 @@ use crate::util;
 use crate::vector::{Interner, Symbol, VectorBuilder};
 
 /// Suffixes that mark a word as Latinate for the purposes of the register axis.
+#[rustfmt::skip]
 const LATINATE_SUFFIXES: &[&str] = &[
-    "tion", "sion", "ment", "ance", "ence", "ity", "ility", "ous", "ious", "eous", "ate", "ify",
-    "ise", "ize", "ive", "ative", "itive", "ic", "ical", "ism", "ist", "itude", "escent", "ferous",
+    "tion", "sion", "ment", "ance", "ence", "ity", "ility", "ous", "ious", "eous", "ate",
+    "ify", "ise", "ize", "ive", "ative", "itive", "ic", "ical", "ism", "ist", "itude",
+    "escent", "ferous",
 ];
 
 /// Latinate-suffix words common enough that counting them as formal would
 /// measure ordinary English rather than register.
+#[rustfmt::skip]
 const LATINATE_STOPLIST: &[&str] = &[
-    "nation", "station", "question", "mention", "motion", "notion", "option", "action", "section",
-    "portion", "city", "pity", "unity", "moment", "comment", "music", "public", "basic", "magic",
-    "logic", "topic", "panic", "picnic", "traffic", "classic", "plastic", "atlantic", "pacific",
-    "active", "give", "live", "love", "have", "five", "drive", "wise", "rise", "size", "house",
-    "mouse", "close", "those", "these", "nice", "price", "twice", "voice", "choice", "office",
-    "late", "date", "state", "gate", "rate", "plate", "great", "create", "eight", "weight",
+    "nation", "station", "question", "mention", "motion", "notion", "option", "action",
+    "section", "portion", "city", "pity", "unity", "moment", "comment", "music", "public",
+    "basic", "magic", "logic", "topic", "panic", "picnic", "traffic", "classic", "plastic",
+    "atlantic", "pacific", "active", "give", "live", "love", "have", "five", "drive", "wise",
+    "rise", "size", "house", "mouse", "close", "those", "these", "nice", "price", "twice",
+    "voice", "choice", "office", "late", "date", "state", "gate", "rate", "plate", "great",
+    "create", "eight", "weight",
 ];
 
 /// Configuration for the register-clash family.

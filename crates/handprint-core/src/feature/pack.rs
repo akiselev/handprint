@@ -1,14 +1,17 @@
-//! Data-pack formats beyond the term/phrase [`LexiconPack`].
+//! Data-pack formats beyond the term/phrase
+//! [`LexiconPack`](crate::feature::LexiconPack).
 //!
 //! Three pack formats exist, all data-only JSON with the same provenance
 //! envelope, because three genuinely different shapes of external data feed the
 //! feature families:
 //!
-//! 1. [`LexiconPack`] — terms and phrase patterns. Membership is the datum.
+//! 1. [`LexiconPack`](crate::feature::LexiconPack) — terms and phrase patterns.
+//!    Membership is the datum.
 //! 2. [`NormPack`] — a *weighted* lexicon: formality scores, concreteness
 //!    ratings, arousal, VADER booster weights. The number attached to the term
 //!    is the datum.
-//! 3. [`CountPack`] — a background frequency table. The [`Feature`] trait sees
+//! 3. [`CountPack`] — a background frequency table. The
+//!    [`Feature`](crate::Feature) trait sees
 //!    only the reference corpus at fit time (by design: nothing corpus-relative
 //!    may enter `transform`), so a background distribution has to arrive as a
 //!    versioned *data input on the spec*, produced offline, never magically at

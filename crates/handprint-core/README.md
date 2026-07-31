@@ -35,6 +35,48 @@ rewrites.
    date and a provenance manifest.
 7. **Core stays light.** Everything heavy is feature-gated.
 
+## Feature families
+
+Each family is a group of dimensions with a shared confidence floor, because a
+document long enough to measure punctuation is not long enough to measure
+frequent-word distributions and the report says so per family rather than once.
+
+| family | what it measures | usable from |
+|---|---|---|
+| `punct` | punctuation, typography, casing, contractions | 40 tokens |
+| `lexicon` | versioned word- and phrase-list hits, with spans and fixes | 40 |
+| `sentence` | sentence dispersion, openers, markdown apparatus, asides, punch rhythm | 60 |
+| `register` | Biber Tier-1 rates, readability grades, formality variance and clash, norm densities | 150 |
+| `syntax` | fragments, parataxis, adverb scarcity, catalogs, intensifier chains, escalation rhythm | 150 |
+| `richness` | length-corrected lexical richness (MTLD, MATTR, Yule's K) | 150 |
+| `contrast` | contrastively discovered signature vocabulary | 150 |
+| `surprisal` | corpus language-model surprisal — the Goodhart canary | 100 |
+| `rhythm` | where surprisal spikes land inside a sentence | 200 |
+| `verse` | metre, stress profile, line geometry, archaism | 200 |
+| `char_ngram` | typed character n-grams | 300 |
+| `device` | comparison frames, litotes, absurd precision, novel bigrams, marketing structure | 300 |
+| `mfw` | most-frequent-word relative frequencies | 500 |
+
+Several families are there for their **low** bands. An author characterized by
+what they *don't* do — no adverbs, no subordination, no intensifiers — is only
+describable by a two-sided band, because "write minimally" gives an agent no
+target rate.
+
+Two-sided bands are also the anti-caricature machinery. Imitation over-fires
+salient markers, and a critic that only had a ceiling would call that success.
+
+### Data packs
+
+Lexicons and weighted norms are versioned data with a provenance envelope, in
+three formats: `LexiconPack` (terms and phrase patterns), `NormPack` (per-word
+scores), `CountPack` (background frequency tables — the only way a background
+distribution reaches a feature, because `fit` sees the reference corpus alone).
+
+`handprint pack list` shows what a binary carries; `pack export` writes one to
+JSON so a project can pin its own. Resources whose terms forbid redistribution
+are **loader-only**: the feature and the loader ship, the table does not, and
+the dimension reports *missing* rather than zero without it.
+
 ## Not a verdict machine
 
 Outputs are evidence summaries. `p_value_vs_unrelated` is the probability of

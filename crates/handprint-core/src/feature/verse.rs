@@ -62,12 +62,13 @@ const YOU_FORMS: &[&str] = &["you", "your", "yours", "yourself", "yourselves"];
 
 /// Line-final words that mark an enjambment: a line ending on a function word
 /// has not finished its clause.
+#[rustfmt::skip]
 const FUNCTION_FINAL: &[&str] = &[
-    "the", "a", "an", "and", "or", "but", "of", "to", "in", "on", "at", "by", "for", "with", "as",
-    "that", "which", "who", "whose", "when", "where", "while", "if", "than", "from", "into",
-    "upon", "my", "thy", "his", "her", "its", "their", "our", "your", "this", "these", "no", "not",
-    "is", "was", "are", "were", "be", "been", "have", "has", "had", "shall", "will", "would",
-    "should", "may", "might", "must", "can", "could", "do", "does", "did",
+    "the", "a", "an", "and", "or", "but", "of", "to", "in", "on", "at", "by", "for", "with",
+    "as", "that", "which", "who", "whose", "when", "where", "while", "if", "than", "from",
+    "into", "upon", "my", "thy", "his", "her", "its", "their", "our", "your", "this", "these",
+    "no", "not", "is", "was", "are", "were", "be", "been", "have", "has", "had", "shall",
+    "will", "would", "should", "may", "might", "must", "can", "could", "do", "does", "did",
 ];
 
 /// Rhetorical figures counted per hundred lines, in emission order.
