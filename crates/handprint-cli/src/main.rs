@@ -113,6 +113,11 @@ pub enum FeatureArg {
     MarketingSlop,
     /// The bundled gonzo epistemic-certainty pack, as category rates.
     Epistemic,
+    /// Syntax texture: fragments, parataxis, adverb scarcity, catalogs,
+    /// intensifier chains, escalation rhythm.
+    Syntax,
+    /// The bundled profanity pack, as category rates.
+    Profanity,
 }
 
 /// Which threshold profile to hold a draft to.

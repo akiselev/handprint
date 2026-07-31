@@ -31,6 +31,7 @@ pub mod readability;
 pub mod richness;
 pub mod sentence;
 pub mod surprisal;
+pub mod syntax;
 pub mod vocab;
 
 pub use biber::{BiberTier1, FittedBiber};
@@ -47,6 +48,7 @@ pub use readability::{FittedReadability, Readability};
 pub use richness::{FittedRichness, Richness};
 pub use sentence::{FittedSentence, SentenceStats};
 pub use surprisal::{FittedSurprisal, SurprisalLm};
+pub use syntax::{FittedSyntax, SyntaxTexture};
 pub use vocab::{ContrastVocab, FittedContrastVocab};
 
 /// The family a dimension belongs to.
@@ -79,6 +81,9 @@ pub enum Family {
     /// Rhetorical device rates: comparison frames, litotes, absurd precision,
     /// transferred epithets, marketing structure.
     Device,
+    /// Syntax texture: fragments, parataxis, adverb scarcity, catalogs,
+    /// intensifier chains, escalation rhythm.
+    Syntax,
     /// Punch rhythm: where surprisal spikes land inside a sentence.
     ///
     /// Separate from [`Family::Surprisal`] on purpose. The surprisal family is
@@ -103,6 +108,7 @@ impl Family {
             Family::Contrast => "contrast",
             Family::Register => "register",
             Family::Device => "device",
+            Family::Syntax => "syntax",
             Family::Rhythm => "rhythm",
         }
     }
@@ -129,6 +135,9 @@ impl Family {
             // that a short draft's rate is dominated by whether it happens to
             // contain one at all.
             Family::Device => (300, 1200),
+            // Closed-class counting, like the register family: a paragraph is
+            // enough to see a subordinator ratio, two sentences are not.
+            Family::Syntax => (150, 600),
             // A punch ratio needs several clause-split sentences before its
             // mean says anything, and those are a minority of sentences.
             Family::Rhythm => (200, 800),
@@ -492,6 +501,8 @@ feature_kinds! {
     Device => DeviceRates, FittedDevices;
     /// Weighted-lexicon density: concreteness, arousal, sensory, boosters.
     NormDensity => NormDensity, FittedNorms;
+    /// Syntax texture: fragments, parataxis, catalogs, escalation rhythm.
+    Syntax => SyntaxTexture, FittedSyntax;
 }
 
 /// Rate per 1,000 tokens, guarding the zero-length case.

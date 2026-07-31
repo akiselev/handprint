@@ -33,6 +33,7 @@ mod hyland;
 mod marketing;
 mod misc;
 mod norms;
+mod profanity;
 mod tech_voice;
 mod wordnet;
 
@@ -54,6 +55,7 @@ pub const BUILTIN_PACKS: &[&str] = &[
     "wiki-ai-signs",
     "epistemic-certainty",
     "drug-lexicon",
+    "profanity",
 ];
 
 /// Look a bundled lexicon pack up by name.
@@ -70,6 +72,7 @@ pub fn builtin(name: &str) -> Option<LexiconPack> {
         "wiki-ai-signs" => misc::wiki_ai_pack(),
         "epistemic-certainty" => misc::epistemic_pack(),
         "drug-lexicon" => misc::drug_pack(),
+        "profanity" => profanity::pack(),
         _ => return None,
     })
 }

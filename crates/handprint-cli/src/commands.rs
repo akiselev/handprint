@@ -11,6 +11,7 @@ use handprint_core::feature::vocab::Universe;
 use handprint_core::feature::{
     BiberTier1, CharNgrams, ComparisonFrames, DeviceRates, LexiconFeature, MostFrequentWords,
     NormDensity, PunctTypography, Readability, RegisterClash, Richness, SentenceStats, SurprisalLm,
+    SyntaxTexture,
 };
 use handprint_core::reference::calibrate::CalibrationConfig;
 use handprint_core::verify::{impostor_pool, Thresholds, VerifyConfig};
@@ -121,6 +122,8 @@ fn fit(command: Command) -> Result<i32> {
             FeatureArg::Epistemic => {
                 builder.feature(builtin_pack_feature("epistemic-certainty", true)?)
             }
+            FeatureArg::Syntax => builder.feature(SyntaxTexture::default()),
+            FeatureArg::Profanity => builder.feature(builtin_pack_feature("profanity", true)?),
         };
     }
 
