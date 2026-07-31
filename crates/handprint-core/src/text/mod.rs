@@ -7,6 +7,8 @@
 //! how many features are configured.
 
 pub mod artifact;
+#[cfg(feature = "verse")]
+pub mod dict;
 pub mod normalize;
 pub mod segment;
 pub mod syllable;
@@ -18,7 +20,7 @@ use serde::{Deserialize, Serialize};
 
 pub use artifact::{Artifact, ArtifactKind, ArtifactReport};
 pub use normalize::{ScoringText, Script};
-pub use segment::{Block, BlockKind, MarkdownStats, Sentence, Structure};
+pub use segment::{Block, BlockKind, Line, MarkdownStats, Sentence, Structure};
 pub use syllable::{count_syllables, SyllableMethod};
 pub use tokenize::{ApostrophePolicy, CaseFold, Token, TokenKind, TokenStream, Tokenizer};
 

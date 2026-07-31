@@ -11,9 +11,10 @@ use handprint_core::feature::vocab::Universe;
 use handprint_core::feature::{
     BiberTier1, CharNgrams, ComparisonFrames, DeviceRates, LexiconFeature, MostFrequentWords,
     NormDensity, PunctTypography, Readability, RegisterClash, Richness, SentenceStats, SurprisalLm,
-    SyntaxTexture,
+    SyntaxTexture, VersePack,
 };
 use handprint_core::reference::calibrate::CalibrationConfig;
+use handprint_core::text::SyllableMethod;
 use handprint_core::verify::{impostor_pool, Thresholds, VerifyConfig};
 use handprint_core::{
     Calibration, Corpus, Document, Metric, Pipeline, Profile, Reference, ThresholdProfile,
@@ -21,7 +22,7 @@ use handprint_core::{
 
 use crate::config::Config;
 use crate::io;
-use crate::{Command, ExtractSource, FeatureArg, HnCommand, ModeArg, PackCommand};
+use crate::{Command, ExtractSource, FeatureArg, HnCommand, ModeArg, PackCommand, SyllableArg};
 
 /// Route a parsed command to its implementation.
 pub fn dispatch(command: Command) -> Result<i32> {
@@ -51,6 +52,7 @@ fn fit(command: Command) -> Result<i32> {
         vocab,
         config,
         no_config,
+        syllables,
         name,
         version,
         kind,
@@ -63,6 +65,15 @@ fn fit(command: Command) -> Result<i32> {
     } = command
     else {
         unreachable!()
+    };
+
+    let syllables = match syllables {
+        SyllableArg::VowelGroup => SyllableMethod::VowelGroup,
+        SyllableArg::Dict => SyllableMethod::Dict {
+            // Empty means "whatever this build carries"; `resolve_for_fit`
+            // fills in the version and fails if the build has none.
+            dict_version: String::new(),
+        },
     };
 
     let corpus = io::load_corpus(&corpus, private)?;
@@ -92,7 +103,10 @@ fn fit(command: Command) -> Result<i32> {
             FeatureArg::Lexicon => builder.feature(LexiconFeature::default()),
             FeatureArg::Surprisal => builder.feature(SurprisalLm::default()),
             FeatureArg::Biber => builder.feature(BiberTier1::default()),
-            FeatureArg::Readability => builder.feature(Readability::default()),
+            FeatureArg::Readability => builder.feature(Readability {
+                syllables: syllables.clone(),
+                ..Default::default()
+            }),
             FeatureArg::Hyland => builder.feature(builtin_pack_feature("hyland", true)?),
             FeatureArg::DocStyle => builder.feature(builtin_pack_feature("doc-style", false)?),
             FeatureArg::TechVoice => builder.feature(builtin_pack_feature("tech-voice", true)?),
@@ -110,7 +124,10 @@ fn fit(command: Command) -> Result<i32> {
                 builder.feature(ComparisonFrames::default().with_frozen(frozen))
             }
             FeatureArg::Formality => builder.feature(RegisterClash::default()),
-            FeatureArg::Devices => builder.feature(DeviceRates::default()),
+            FeatureArg::Devices => builder.feature(DeviceRates {
+                syllables: syllables.clone(),
+                ..Default::default()
+            }),
             FeatureArg::Concreteness => builder.feature(NormDensity::new(
                 handprint_core::feature::packs::concreteness_stub(),
             )),
@@ -122,8 +139,15 @@ fn fit(command: Command) -> Result<i32> {
             FeatureArg::Epistemic => {
                 builder.feature(builtin_pack_feature("epistemic-certainty", true)?)
             }
-            FeatureArg::Syntax => builder.feature(SyntaxTexture::default()),
+            FeatureArg::Syntax => builder.feature(SyntaxTexture {
+                syllables: syllables.clone(),
+                ..Default::default()
+            }),
             FeatureArg::Profanity => builder.feature(builtin_pack_feature("profanity", true)?),
+            FeatureArg::Verse => builder.feature(VersePack {
+                syllables: syllables.clone(),
+                ..Default::default()
+            }),
         };
     }
 

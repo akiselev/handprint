@@ -383,6 +383,7 @@ pub struct FittedDevices {
     precision: Symbol,
     epithet: Symbol,
     alliteration: Symbol,
+    rhyme: Symbol,
     antonym: Option<Symbol>,
     ambiguity: Option<Symbol>,
     novel_bigram: Option<Symbol>,
@@ -446,6 +447,11 @@ impl Feature for DeviceRates {
             Unit::PerThousandTokens,
         );
         let alliteration = push(interner, "dev:alliteration_rate", Unit::PerThousandTokens);
+        // Completes the Mihalcea-Strapparava trio. Emitted always, computed
+        // only under the Dict method: a letter-based rhyme detector fires on
+        // "though/rough" and misses "high/lie", so on VowelGroup this is
+        // marked missing rather than faked.
+        let rhyme = push(interner, "dev:rhyme_chain_rate", Unit::PerThousandTokens);
         let antonym = self
             .wordnet
             .then(|| push(interner, "dev:antonym_pair_rate", Unit::PerThousandTokens));
@@ -532,6 +538,7 @@ impl Feature for DeviceRates {
             precision,
             epithet,
             alliteration,
+            rhyme,
             antonym,
             ambiguity,
             novel_bigram,
@@ -695,6 +702,36 @@ impl FittedDevices {
             );
         }
         out.set(self.alliteration, per_1k(runs, tokens));
+        self.rhyme_chains(lexical, tokens, out);
+    }
+
+    /// Rhyme chains: two words within a short window sharing a rhyme key.
+    ///
+    /// Dict-method only. On the vowel-group method the dimension is marked
+    /// missing, because the alternative is a letter-based detector that
+    /// measures spelling and calls it sound.
+    fn rhyme_chains(&self, lexical: &[(&str, Span)], tokens: usize, out: &mut VectorBuilder) {
+        if !matches!(self.syllable_method, SyllableMethod::Dict { .. }) {
+            out.mark_missing(self.rhyme);
+            return;
+        }
+        const WINDOW: usize = 12;
+        let mut chains = 0usize;
+        for (i, (form, span)) in lexical.iter().enumerate() {
+            let Some(key) = rhyme_key(form) else { continue };
+            let end = (i + WINDOW + 1).min(lexical.len());
+            for (other, other_span) in &lexical[i + 1..end] {
+                if *other == *form {
+                    continue;
+                }
+                if rhyme_key(other) == Some(key) {
+                    chains += 1;
+                    out.note_span(self.rhyme, Span::new(span.start, other_span.end));
+                    break;
+                }
+            }
+        }
+        out.set(self.rhyme, per_1k(chains, tokens));
     }
 
     /// Antonym pairs and sense ambiguity.
@@ -953,6 +990,19 @@ fn is_precise_numeral(form: &str) -> bool {
         return false;
     }
     form.contains('.') || digits.len() >= 3
+}
+
+/// A word's rhyme key, when the build carries pronunciation data.
+fn rhyme_key(word: &str) -> Option<&'static str> {
+    #[cfg(feature = "verse")]
+    {
+        crate::text::dict::rhyme_key(word)
+    }
+    #[cfg(not(feature = "verse"))]
+    {
+        let _ = word;
+        None
+    }
 }
 
 fn is_negator(form: &str) -> bool {
@@ -1292,6 +1342,30 @@ mod tests {
     fn empty_text_marks_everything_missing() {
         let (v, i) = transform(DeviceRates::default(), "");
         assert!(v.is_missing(i.get("dev:litotes_rate").unwrap()));
+    }
+
+    #[test]
+    fn rhyme_is_missing_under_the_vowel_group_method() {
+        // The honest half of the Mihalcea trio: no phoneme data, no rhyme
+        // number. A letter-based detector would measure spelling.
+        let (v, i) = transform(DeviceRates::default(), "the light was bright at night");
+        assert!(v.is_missing(i.get("dev:rhyme_chain_rate").unwrap()));
+    }
+
+    #[cfg(feature = "verse")]
+    #[test]
+    fn rhyme_chains_are_counted_on_a_verse_build() {
+        let spec = DeviceRates {
+            syllables: SyllableMethod::Dict {
+                dict_version: crate::text::dict::DICT_VERSION.into(),
+            },
+            ..Default::default()
+        };
+        let (v, i) = transform(spec.clone(), "the light was bright and it was night");
+        assert!(v.get(i.get("dev:rhyme_chain_rate").unwrap()) > 0.0);
+        // And it groups by sound, not by spelling.
+        let (v, i) = transform(spec, "it was though it was rough");
+        assert_eq!(v.get(i.get("dev:rhyme_chain_rate").unwrap()), 0.0);
     }
 
     #[test]

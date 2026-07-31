@@ -118,6 +118,20 @@ pub enum FeatureArg {
     Syntax,
     /// The bundled profanity pack, as category rates.
     Profanity,
+    /// Metre, stress profile, line geometry, archaism. Marks every dimension
+    /// missing on prose, so it costs nothing to include by mistake.
+    Verse,
+}
+
+/// How syllables and phonemes are counted.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum SyllableArg {
+    /// Vowel-group heuristic. No data dependency; the default everywhere.
+    VowelGroup,
+    /// Pronunciation table. Needs a binary built with `--features verse`, and
+    /// the choice is recorded in the artifact: a reference fitted this way
+    /// refuses to load on a build that cannot reproduce it.
+    Dict,
 }
 
 /// Which threshold profile to hold a draft to.
@@ -193,6 +207,10 @@ pub enum Command {
         /// Ignore `handprint.toml` entirely.
         #[arg(long)]
         no_config: bool,
+        /// How syllables are counted, for the readability, syntax, device and
+        /// verse families. Recorded in the artifact.
+        #[arg(long, value_enum, default_value = "vowel-group")]
+        syllables: SyllableArg,
         /// Name recorded in the artifact's provenance.
         #[arg(long, default_value = "unnamed")]
         name: String,

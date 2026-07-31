@@ -32,6 +32,7 @@ pub mod richness;
 pub mod sentence;
 pub mod surprisal;
 pub mod syntax;
+pub mod verse;
 pub mod vocab;
 
 pub use biber::{BiberTier1, FittedBiber};
@@ -49,6 +50,7 @@ pub use richness::{FittedRichness, Richness};
 pub use sentence::{FittedSentence, SentenceStats};
 pub use surprisal::{FittedSurprisal, SurprisalLm};
 pub use syntax::{FittedSyntax, SyntaxTexture};
+pub use verse::{FittedVerse, VersePack};
 pub use vocab::{ContrastVocab, FittedContrastVocab};
 
 /// The family a dimension belongs to.
@@ -84,6 +86,8 @@ pub enum Family {
     /// Syntax texture: fragments, parataxis, adverb scarcity, catalogs,
     /// intensifier chains, escalation rhythm.
     Syntax,
+    /// Metre, stress profile, line geometry, archaism.
+    Verse,
     /// Punch rhythm: where surprisal spikes land inside a sentence.
     ///
     /// Separate from [`Family::Surprisal`] on purpose. The surprisal family is
@@ -109,6 +113,7 @@ impl Family {
             Family::Register => "register",
             Family::Device => "device",
             Family::Syntax => "syntax",
+            Family::Verse => "verse",
             Family::Rhythm => "rhythm",
         }
     }
@@ -138,6 +143,10 @@ impl Family {
             // Closed-class counting, like the register family: a paragraph is
             // enough to see a subordinator ratio, two sentences are not.
             Family::Syntax => (150, 600),
+            // A stress profile needs lines, and lines are shorter than
+            // sentences: a sonnet is around 120 tokens and is already worth
+            // reading, a couplet is not.
+            Family::Verse => (200, 800),
             // A punch ratio needs several clause-split sentences before its
             // mean says anything, and those are a minority of sentences.
             Family::Rhythm => (200, 800),
@@ -187,6 +196,9 @@ pub enum Unit {
     PerThousandTokens,
     /// Occurrences per 100 sentences.
     PerHundredSentences,
+    /// Occurrences per 100 source lines. Verse geometry is measured per line,
+    /// not per sentence: a line break is the unit the poet chose.
+    PerHundredLines,
     /// A share of some total, in `[0, 1]`.
     Fraction,
     /// A relative frequency within its own term universe, in `[0, 1]`.
@@ -206,6 +218,7 @@ impl Unit {
             self,
             Unit::PerThousandTokens
                 | Unit::PerHundredSentences
+                | Unit::PerHundredLines
                 | Unit::Fraction
                 | Unit::Tokens
                 | Unit::Index
@@ -226,6 +239,7 @@ impl Unit {
         match self {
             Unit::PerThousandTokens => 0.5,
             Unit::PerHundredSentences => 1.0,
+            Unit::PerHundredLines => 1.0,
             Unit::Fraction => 0.02,
             Unit::RelativeFrequency => 0.002,
             Unit::Tokens => 1.0,
@@ -239,6 +253,7 @@ impl Unit {
         match self {
             Unit::PerThousandTokens => "per_1k_tokens",
             Unit::PerHundredSentences => "per_100_sentences",
+            Unit::PerHundredLines => "per_100_lines",
             Unit::Fraction => "fraction",
             Unit::RelativeFrequency => "relative_frequency",
             Unit::Tokens => "tokens",
@@ -503,6 +518,8 @@ feature_kinds! {
     NormDensity => NormDensity, FittedNorms;
     /// Syntax texture: fragments, parataxis, catalogs, escalation rhythm.
     Syntax => SyntaxTexture, FittedSyntax;
+    /// Metre, stress profile, line geometry, archaism.
+    Verse => VersePack, FittedVerse;
 }
 
 /// Rate per 1,000 tokens, guarding the zero-length case.

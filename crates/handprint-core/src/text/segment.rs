@@ -96,6 +96,42 @@ pub struct MarkdownStats {
     pub table_rows: usize,
 }
 
+/// One source line, kept so that line geometry is measurable.
+///
+/// WIT.md asks for a "line-preserving tokenizer mode", but the right layer is
+/// segmentation, not tokenization: source text is never mutated here —
+/// [`ScoringText`](crate::text::ScoringText) folds confusables with an offset
+/// map back to source bytes, and normalization is per token — so line structure
+/// was never destroyed. It was merely not exposed. The block classifier already
+/// walks the lines and then threw them away; this keeps them.
+///
+/// Verse and line-geometry features read these. Prose pipelines ignore them,
+/// and the cost when unused is one vector.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Line {
+    /// Byte range in the source text, with the line terminator trimmed.
+    pub span: Span,
+    /// Half-open range into [`TokenStream::tokens`].
+    pub tokens: Range<usize>,
+    /// Whether a blank line precedes this one. Runs of these delimit stanzas.
+    pub blank_before: bool,
+}
+
+impl Line {
+    /// Number of word and number tokens on the line.
+    pub fn lexical_len(&self, stream: &TokenStream) -> usize {
+        stream.tokens()[self.tokens.clone()]
+            .iter()
+            .filter(|t| t.kind.is_lexical())
+            .count()
+    }
+
+    /// True when the line holds no tokens at all.
+    pub fn is_empty(&self) -> bool {
+        self.tokens.is_empty()
+    }
+}
+
 /// Everything the segmenter derives from a document.
 #[derive(Debug, Clone, Default)]
 pub struct Structure {
@@ -103,6 +139,8 @@ pub struct Structure {
     pub blocks: Vec<Block>,
     /// Sentences in document order.
     pub sentences: Vec<Sentence>,
+    /// Non-blank source lines in document order. See [`Line`].
+    pub lines: Vec<Line>,
     /// Markdown structure counts.
     pub markdown: MarkdownStats,
 }
@@ -119,11 +157,42 @@ pub fn segment(source: &str, stream: &TokenStream) -> Structure {
     let (blocks, markdown) = segment_blocks(source);
     let boundaries = sentence_boundaries(source, &blocks);
     let sentences = attach_tokens(source, &boundaries, stream);
+    let lines = segment_lines(source, stream);
     Structure {
         blocks,
         sentences,
+        lines,
         markdown,
     }
+}
+
+/// Build the line table from the same pass the block classifier uses.
+fn segment_lines(source: &str, stream: &TokenStream) -> Vec<Line> {
+    let mut spans: Vec<(Span, bool)> = Vec::new();
+    let mut blank_before = false;
+    for (start, line) in line_offsets(source) {
+        let trimmed_end = line.trim_end();
+        let lead = line.len() - line.trim_start().len();
+        if trimmed_end.trim().is_empty() {
+            blank_before = true;
+            continue;
+        }
+        spans.push((
+            Span::new(start + lead, start + trimmed_end.len()),
+            blank_before,
+        ));
+        blank_before = false;
+    }
+    let ranges = attach_ranges(&spans.iter().map(|(s, _)| *s).collect::<Vec<_>>(), stream);
+    spans
+        .into_iter()
+        .zip(ranges)
+        .map(|((span, blank_before), tokens)| Line {
+            span,
+            tokens,
+            blank_before,
+        })
+        .collect()
 }
 
 fn segment_blocks(source: &str) -> (Vec<Block>, MarkdownStats) {
@@ -363,32 +432,43 @@ fn is_list_marker(text: &str, period_offset: usize) -> bool {
 
 fn attach_tokens(source: &str, spans: &[Span], stream: &TokenStream) -> Vec<Sentence> {
     let _ = source;
-    let mut sentences: Vec<Sentence> = spans
+    let ranges = attach_ranges(spans, stream);
+    spans
         .iter()
-        .map(|&span| Sentence { span, tokens: 0..0 })
-        .collect();
-    if sentences.is_empty() {
-        return sentences;
+        .zip(ranges)
+        .map(|(&span, tokens)| Sentence { span, tokens })
+        .collect()
+}
+
+/// Map a sequence of non-overlapping, ascending source spans onto token index
+/// ranges by one lockstep walk of the token stream.
+///
+/// Shared by the sentence table and the line table, which are two different
+/// slicings of the same document and must agree about which token is where.
+fn attach_ranges(spans: &[Span], stream: &TokenStream) -> Vec<Range<usize>> {
+    let mut ranges: Vec<Range<usize>> = vec![0..0; spans.len()];
+    if spans.is_empty() {
+        return ranges;
     }
     let mut si = 0usize;
     for (ti, token) in stream.tokens().iter().enumerate() {
-        while si < sentences.len() && token.span.start >= sentences[si].span.end {
+        while si < spans.len() && token.span.start >= spans[si].end {
             si += 1;
         }
-        if si >= sentences.len() {
+        if si >= spans.len() {
             break;
         }
-        if token.span.start < sentences[si].span.start {
+        if token.span.start < spans[si].start {
             continue;
         }
-        let range = &mut sentences[si].tokens;
+        let range = &mut ranges[si];
         if range.start == range.end {
             *range = ti..ti + 1;
         } else {
             range.end = ti + 1;
         }
     }
-    sentences
+    ranges
 }
 
 #[cfg(test)]
@@ -460,6 +540,66 @@ mod tests {
         let (s, _) = segment_str(text);
         let got: Vec<&str> = s.sentences.iter().map(|x| &text[x.span.range()]).collect();
         assert_eq!(got, vec!["1. First item runs on", "2. Second item"]);
+    }
+
+    #[test]
+    fn every_line_span_slices_the_source_back_to_the_line() {
+        // Property: the line table is a view of the source, never a copy, so
+        // slicing with a span has to reproduce the line without its terminator.
+        let texts = [
+            "one\ntwo\nthree",
+            "one\r\ntwo\r\n",
+            "  indented\nplain\n",
+            "\n\nleading blanks\n\ntrailing\n\n",
+            "single line no newline",
+            "",
+        ];
+        for text in texts {
+            let (s, _) = segment_str(text);
+            for line in &s.lines {
+                let sliced = &text[line.span.range()];
+                assert!(!sliced.contains('\n'), "{sliced:?} in {text:?}");
+                assert_eq!(sliced, sliced.trim(), "{sliced:?} is not trimmed");
+                assert!(!sliced.is_empty(), "a blank line reached the table");
+            }
+        }
+    }
+
+    #[test]
+    fn blank_before_marks_stanza_breaks() {
+        let poem = "so you want to be a writer?\nif it doesn't come bursting out of you\n\
+                    \nin spite of everything,\ndon't do it.\n\nunless it comes unasked\n";
+        let (s, _) = segment_str(poem);
+        let breaks: Vec<bool> = s.lines.iter().map(|l| l.blank_before).collect();
+        // Five non-blank lines; the two stanza breaks are the third and fifth.
+        assert_eq!(breaks, vec![false, false, true, false, true]);
+    }
+
+    #[test]
+    fn line_token_ranges_agree_with_the_source() {
+        let text = "alpha beta\ngamma delta epsilon\nzeta";
+        let (s, stream) = segment_str(text);
+        assert_eq!(s.lines.len(), 3);
+        assert_eq!(s.lines[0].lexical_len(&stream), 2);
+        assert_eq!(s.lines[1].lexical_len(&stream), 3);
+        assert_eq!(s.lines[2].lexical_len(&stream), 1);
+        for line in &s.lines {
+            for token in &stream.tokens()[line.tokens.clone()] {
+                assert!(token.span.start >= line.span.start);
+                assert!(token.span.end <= line.span.end);
+            }
+        }
+    }
+
+    #[test]
+    fn prose_still_has_lines_and_they_do_not_disturb_sentences() {
+        // The line table is additive: a prose pipeline that ignores it must
+        // profile exactly as it did before.
+        let text = "One thing. Then another! And a third?";
+        let (s, _) = segment_str(text);
+        assert_eq!(s.lines.len(), 1);
+        assert_eq!(s.sentences.len(), 3);
+        assert_eq!(&text[s.lines[0].span.range()], text);
     }
 
     #[test]
