@@ -16,7 +16,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use super::{ratio, DimInfo, Family, Feature, FitContext, FittedFeature, Unit};
+use super::{per_1k, DimInfo, Family, Feature, FitContext, FittedFeature, Unit};
 use crate::error::{Error, Result};
 use crate::text::{Analysis, ScoringText, Span};
 use crate::vector::{Interner, Symbol, VectorBuilder};
@@ -140,6 +140,17 @@ impl ContrastVocab {
     }
 }
 
+/// Fitted-state version of [`FittedContrastVocab`].
+///
+/// `0` is what an artifact written before the unit change deserializes as. Its
+/// dimensions were emitted as [`Unit::RelativeFrequency`], for which
+/// `is_actionable()` is false — so those dimensions could never become findings,
+/// and the reference would look fine while quietly contributing nothing to the
+/// critique. That is a *silent reinterpretation*, the one failure mode a
+/// serde-default cannot be allowed to produce, so loading such an artifact is an
+/// error telling the user to refit.
+pub const CONTRAST_VOCAB_VERSION: u32 = 1;
+
 /// Fitted [`ContrastVocab`].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FittedContrastVocab {
@@ -148,11 +159,37 @@ pub struct FittedContrastVocab {
     universe: Universe,
     lookup: HashMap<String, Symbol>,
     z: HashMap<String, f64>,
+    /// See [`CONTRAST_VOCAB_VERSION`]. Serde-defaults to `0`, which is exactly
+    /// what a pre-change artifact means.
+    #[serde(default)]
+    version: u32,
 }
 
 impl FittedContrastVocab {
     /// The family this feature belongs to.
     pub const FAMILY: Family = Family::Contrast;
+
+    /// The fitted-state version this artifact was written with.
+    pub fn version(&self) -> u32 {
+        self.version
+    }
+
+    /// Reject an artifact whose dimensions would be silently non-actionable.
+    pub fn validate(&self) -> Result<()> {
+        if self.version < CONTRAST_VOCAB_VERSION {
+            return Err(Error::InvalidConfig {
+                what: "FittedContrastVocab",
+                detail: format!(
+                    "contrast vocabulary {:?} was fitted before its dimensions became \
+                     actionable (version {} < {}); its findings would be silently dropped. \
+                     Refit the reference — pre-1.0 handprint refits artifacts rather than \
+                     migrating them.",
+                    self.name, self.version, CONTRAST_VOCAB_VERSION
+                ),
+            });
+        }
+        Ok(())
+    }
 
     /// The contrast this vocabulary came from.
     pub fn name(&self) -> &str {
@@ -188,7 +225,7 @@ impl Feature for ContrastVocab {
         let mut z = HashMap::with_capacity(self.terms.len());
         for term in &self.terms {
             let sym = interner.intern(&format!("contrast:{ns}:{u}:{}", term.text));
-            dims.push(DimInfo::new(sym, Family::Contrast, Unit::RelativeFrequency));
+            dims.push(DimInfo::new(sym, Family::Contrast, Unit::PerThousandTokens));
             lookup.insert(term.text.clone(), sym);
             z.insert(term.text.clone(), term.z);
         }
@@ -198,6 +235,7 @@ impl Feature for ContrastVocab {
             universe: self.universe,
             lookup,
             z,
+            version: CONTRAST_VOCAB_VERSION,
         })
     }
 }
@@ -213,13 +251,13 @@ impl FittedFeature for FittedContrastVocab {
 
     fn transform(&self, analysis: &Analysis<'_>, out: &mut VectorBuilder) {
         let terms = self.universe.extract(analysis);
-        if terms.is_empty() {
+        let tokens = analysis.lexical_len();
+        if terms.is_empty() || tokens == 0 {
             for dim in &self.dims {
                 out.mark_missing(dim.symbol);
             }
             return;
         }
-        let total = terms.len();
         let mut counts: HashMap<Symbol, usize> = HashMap::new();
         for (text, span) in &terms {
             if let Some(&sym) = self.lookup.get(text) {
@@ -227,9 +265,20 @@ impl FittedFeature for FittedContrastVocab {
                 out.note_span(sym, *span);
             }
         }
+        // Per 1,000 *lexical tokens*, not per term of this universe.
+        //
+        // A share-of-universe number is a `RelativeFrequency`, which the
+        // critique layer treats as non-actionable — so contrast dimensions
+        // could be scored and never reported, which defeats the point of
+        // deriving a signature lexicon in the first place. Rating against the
+        // document's own length also makes the number sayable: "'atavistic' at
+        // 0.0 per 1k against a band of 0.8-2.4 — increase" is an instruction.
+        // For a character-n-gram universe the denominator is still lexical
+        // tokens, which is a scale choice rather than a natural rate; it stays
+        // monotone in the count, which is what a band needs.
         for dim in &self.dims {
             let count = counts.get(&dim.symbol).copied().unwrap_or(0);
-            out.set(dim.symbol, ratio(count, total));
+            out.set(dim.symbol, per_1k(count, tokens));
         }
     }
 }
@@ -279,9 +328,8 @@ mod tests {
         assert_eq!(terms, vec!["ab ", "b c", " cd"]);
     }
 
-    #[test]
-    fn contrast_vocab_measures_relative_frequency() {
-        let vocab = ContrastVocab::new(
+    fn ai_vocab() -> ContrastVocab {
+        ContrastVocab::new(
             "ai-vs-human",
             Universe::Words,
             vec![
@@ -294,24 +342,76 @@ mod tests {
                     z: 3.1,
                 },
             ],
-        );
+        )
+    }
+
+    fn fit_vocab(vocab: &ContrastVocab) -> (FittedContrastVocab, Interner) {
         let corpus = Corpus::new();
         let ctx = FitContext::new(&corpus, &[]);
         let mut interner = Interner::new();
         let fitted = vocab.fit(&ctx, &mut interner).unwrap();
+        (fitted, interner)
+    }
 
+    #[test]
+    fn contrast_vocab_measures_a_rate_per_thousand_tokens() {
+        let (fitted, interner) = fit_vocab(&ai_vocab());
         let doc = Document::new("delve delve into things");
         let a = doc.analyze(&Tokenizer::default());
         let mut b = VectorBuilder::new();
         fitted.transform(&a, &mut b);
         let v = b.build();
+        // Four lexical tokens, two hits -> 500 per 1k.
         let sym = interner.get("contrast:ai-vs-human:w1:delve").unwrap();
-        assert!((v.get(sym) - 0.5).abs() < 1e-12);
+        assert!((v.get(sym) - 500.0).abs() < 1e-9);
         assert_eq!(
             v.get(interner.get("contrast:ai-vs-human:w1:tapestry").unwrap()),
             0.0
         );
         assert_eq!(fitted.z_of("delve"), Some(4.2));
+    }
+
+    #[test]
+    fn contrast_dims_are_actionable_so_they_can_become_findings() {
+        // The whole point of the unit change. As RelativeFrequency these
+        // dimensions were scored and never reported, which made a derived
+        // signature lexicon useless to the critic loop.
+        let (fitted, _) = fit_vocab(&ai_vocab());
+        for dim in fitted.dims() {
+            assert_eq!(dim.unit, Unit::PerThousandTokens);
+            assert!(dim.unit.is_actionable());
+            assert!(!dim.aggregate);
+        }
+    }
+
+    #[test]
+    fn a_pre_change_artifact_loads_but_refuses_to_be_used() {
+        // The silent-reinterpretation guard. Without the version field this
+        // artifact would deserialize cleanly, keep its non-actionable unit, and
+        // contribute nothing to any critique — while looking fine.
+        let (fitted, _) = fit_vocab(&ai_vocab());
+        assert_eq!(fitted.version(), CONTRAST_VOCAB_VERSION);
+        assert!(fitted.validate().is_ok());
+
+        let json = serde_json::to_string(&fitted).unwrap();
+        let stale = json.replace(&format!(",\"version\":{CONTRAST_VOCAB_VERSION}"), "");
+        assert_ne!(stale, json, "the version field must be serialized");
+        let back: FittedContrastVocab = serde_json::from_str(&stale).unwrap();
+        assert_eq!(back.version(), 0);
+        let err = back.validate().unwrap_err();
+        let message = format!("{err}");
+        assert!(message.contains("Refit"), "{message}");
+    }
+
+    #[test]
+    fn an_empty_document_marks_the_dims_missing_rather_than_zero() {
+        let (fitted, interner) = fit_vocab(&ai_vocab());
+        let doc = Document::new("");
+        let a = doc.analyze(&Tokenizer::default());
+        let mut b = VectorBuilder::new();
+        fitted.transform(&a, &mut b);
+        let v = b.build();
+        assert!(v.is_missing(interner.get("contrast:ai-vs-human:w1:delve").unwrap()));
     }
 
     #[test]

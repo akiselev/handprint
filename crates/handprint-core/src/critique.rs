@@ -563,6 +563,12 @@ impl<'a> Critic<'a> {
 
     /// Review a draft, advancing the loop by one iteration.
     pub fn review(&mut self, text: &str) -> Result<CritiqueReport> {
+        // Checked on every iteration rather than at construction because
+        // `with_config` is infallible and predates this check. It is a handful
+        // of enum matches, and failing here is what stops a reference whose
+        // contrast dimensions would be silently unreportable from producing a
+        // plausible-looking report that says nothing.
+        self.reference.validate()?;
         self.iteration += 1;
         let metric = self
             .config
@@ -1838,6 +1844,199 @@ mod tests {
             },
         );
         assert!(critic.review(&human(1)).is_err());
+    }
+
+    /// A reference carrying one contrast vocabulary of AI-ish signature words.
+    fn reference_with_contrast_vocab() -> (Reference, Vec<Profile>) {
+        use crate::feature::vocab::{ContrastTerm, ContrastVocab, Universe};
+
+        let corpus = corpus(30, human);
+        let vocab = ContrastVocab::new(
+            "slop",
+            Universe::Words,
+            ["tapestry", "delves", "commendable", "paradigm"]
+                .into_iter()
+                .map(|t| ContrastTerm {
+                    text: t.into(),
+                    z: 3.0,
+                })
+                .collect(),
+        );
+        let reference = Pipeline::builder()
+            .feature(PunctTypography::default())
+            .feature(SentenceStats::default())
+            .feature(vocab)
+            .name("contrast-vocab")
+            .fit(&corpus)
+            .unwrap();
+        let targets: Vec<Profile> = (0..12)
+            .map(|i| reference.profile(&Document::new(human(i))))
+            .collect();
+        (reference, targets)
+    }
+
+    #[test]
+    fn contrast_vocabulary_dimensions_fire_in_both_directions() {
+        // W3 acceptance. The corpus never uses these words, so an over-firing
+        // draft must produce Reduce findings on `contrast.slop.w1.*` ids with
+        // byte spans. (The Increase arm needs a corpus that *does* use them —
+        // covered by the under-firing case below.)
+        let (reference, targets) = reference_with_contrast_vocab();
+        let mut critic = Critic::with_config(
+            &reference,
+            targets,
+            None,
+            CritiqueConfig {
+                max_findings: 200,
+                metric: Some(Metric::BurrowsDelta),
+                ..Default::default()
+            },
+        );
+        let draft = format!(
+            "{} The tapestry of it all is commendable, and the paradigm delves further.",
+            human(50)
+        );
+        let report = critic.review(&draft).unwrap();
+        let contrast: Vec<&Finding> = report
+            .findings
+            .iter()
+            .filter(|f| f.id.starts_with("contrast.slop.w1."))
+            .collect();
+        assert!(
+            !contrast.is_empty(),
+            "contrast dims must be reportable now; got {:?}",
+            report.findings.iter().map(|f| &f.id).collect::<Vec<_>>()
+        );
+        for finding in &contrast {
+            assert_eq!(finding.direction, Direction::Reduce);
+            assert_eq!(finding.unit, "per_1k_tokens");
+            assert!(!finding.spans.is_empty(), "{} carried no spans", finding.id);
+            let term = finding.id.rsplit('.').next().unwrap();
+            for span in &finding.spans {
+                assert_eq!(&draft[span[0]..span[1]], term, "{}", finding.id);
+            }
+        }
+    }
+
+    #[test]
+    fn an_under_firing_draft_is_told_to_increase_the_signature_lexis() {
+        use crate::feature::vocab::{ContrastTerm, ContrastVocab, Universe};
+
+        // A corpus that *does* use the signature words, and a draft that does
+        // not: under-firing is as much a failure as over-firing.
+        let salty: Vec<String> = (0..30)
+            .map(|i| {
+                format!(
+                    "{} The tapestry of it is commendable. The paradigm delves in.",
+                    human(i)
+                )
+            })
+            .collect();
+        let mut corpus = Corpus::new();
+        for (i, text) in salty.iter().enumerate() {
+            corpus.add(format!("d{i}"), [Document::new(text.clone())]);
+        }
+        let vocab = ContrastVocab::new(
+            "slop",
+            Universe::Words,
+            ["tapestry", "delves", "commendable", "paradigm"]
+                .into_iter()
+                .map(|t| ContrastTerm {
+                    text: t.into(),
+                    z: 3.0,
+                })
+                .collect(),
+        );
+        let reference = Pipeline::builder()
+            .feature(PunctTypography::default())
+            .feature(vocab)
+            .name("contrast-vocab")
+            .fit(&corpus)
+            .unwrap();
+        let targets: Vec<Profile> = (0..12)
+            .map(|i| reference.profile(&Document::new(salty[i].clone())))
+            .collect();
+        let mut critic = Critic::with_config(
+            &reference,
+            targets,
+            None,
+            CritiqueConfig {
+                max_findings: 200,
+                metric: Some(Metric::BurrowsDelta),
+                ..Default::default()
+            },
+        );
+        let report = critic.review(&human(77)).unwrap();
+        let increases: Vec<&Finding> = report
+            .findings
+            .iter()
+            .filter(|f| f.id.starts_with("contrast.slop.w1."))
+            .collect();
+        assert!(
+            increases.iter().all(|f| f.direction == Direction::Increase),
+            "{:?}",
+            increases
+                .iter()
+                .map(|f| (&f.id, f.direction))
+                .collect::<Vec<_>>()
+        );
+        assert!(!increases.is_empty());
+        // Under-using is never high severity on its own — the lexicon-declared
+        // escalation is Reduce-only, deliberately.
+        for finding in &increases {
+            assert!(finding.observed < finding.target_band[0]);
+        }
+    }
+
+    #[test]
+    fn a_pre_change_contrast_artifact_fails_the_loop_with_a_refit_error() {
+        // The version gate, end to end: the reference deserializes, and the
+        // first review refuses rather than silently reporting nothing.
+        let (reference, targets) = reference_with_contrast_vocab();
+        let json = serde_json::to_string(&reference).unwrap();
+        let stale = json.replace("\"version\":1", "\"version\":0");
+        assert_ne!(stale, json);
+        let stale: Reference = serde_json::from_str(&stale).unwrap();
+        assert!(stale.validate().is_err());
+
+        let mut critic = Critic::corpus_mimic(&stale, targets);
+        let err = critic.review(&human(1)).unwrap_err();
+        let message = format!("{err}");
+        assert!(message.contains("Refit"), "{message}");
+    }
+
+    #[test]
+    fn an_over_fired_dimension_is_told_to_reduce_and_the_message_shows_both_edges() {
+        // The anti-caricature severity audit. More-slop-than-the-corpus has to
+        // read as a Reduce with both band edges rendered, so an agent can see
+        // the ceiling it overshot rather than only the direction.
+        let (reference, targets) = human_reference(false);
+        let mut critic = Critic::with_config(
+            &reference,
+            targets,
+            None,
+            CritiqueConfig {
+                max_findings: 500,
+                metric: Some(Metric::BurrowsDelta),
+                ..Default::default()
+            },
+        );
+        let report = critic.review(&slopped(31)).unwrap();
+        let over = report
+            .findings
+            .iter()
+            .find(|f| f.direction == Direction::Reduce && f.id.starts_with("lex."))
+            .expect("a slopped draft must over-fire a lexicon dimension");
+        assert!(over.observed > over.target_band[1]);
+        assert!(over.severity >= Severity::Medium);
+        // Both edges in the message, not just the one that was crossed.
+        let lo = format!("{:.2}", over.target_band[0]);
+        let hi = format!("{:.2}", over.target_band[1]);
+        assert!(
+            over.message.contains(&format!("{lo}-{hi}")),
+            "message must render the whole band: {}",
+            over.message
+        );
     }
 
     #[test]

@@ -677,6 +677,77 @@ fn the_register_family_reaches_the_contract_as_an_open_set_value() {
 }
 
 #[test]
+fn the_discover_fit_critique_loop_closes() {
+    // W3 acceptance. `contrast --out` writes a vocabulary, `fit --vocab` turns
+    // it into a feature, and `critique` reports it. That chain is what makes an
+    // author's signature lexis *derived* rather than hand-listed — the hand
+    // list is a golden test, never the mechanism.
+    let fixture = Fixture::new("closed-loop");
+
+    let (code, out, err) = fixture.run(&[
+        "contrast",
+        "background",
+        "me",
+        "--min-count",
+        "3",
+        "--z-threshold",
+        "1.5",
+        "--out",
+        "vocab.json",
+    ]);
+    assert_eq!(code, 0, "contrast failed: {err}");
+    assert!(out.contains("wrote"), "{out}");
+    let vocab: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(fixture.path("vocab.json")).unwrap())
+            .unwrap();
+    assert!(
+        vocab["terms"].as_array().is_some_and(|t| !t.is_empty()),
+        "the contrast produced no vocabulary: {vocab}"
+    );
+
+    let (code, out, err) = fixture.run(&[
+        "fit",
+        "me",
+        "-o",
+        "me.json",
+        "--no-config",
+        "--name",
+        "closed",
+        "--features",
+        "punct,sentence",
+        "--vocab",
+        "vocab.json",
+    ]);
+    assert_eq!(code, 0, "fit --vocab failed: {err}\n{out}");
+
+    std::fs::write(fixture.path("draft.txt"), compose(61, SLOP, 14, ".")).unwrap();
+    let (code, out, err) = fixture.run(&[
+        "critique",
+        "-r",
+        "me.json",
+        "draft.txt",
+        "--max-findings",
+        "80",
+    ]);
+    assert_eq!(code, 2, "{err}\n{out}");
+    let report: CritiqueReport = serde_json::from_str(&out).unwrap();
+    assert!(
+        report.doc.confidence.contains_key("contrast"),
+        "the contrast family must reach the report: {:?}",
+        report.doc.confidence.keys().collect::<Vec<_>>()
+    );
+    // Every reported contrast finding is in the actionable unit, which is what
+    // the W3 change bought.
+    for finding in report
+        .findings
+        .iter()
+        .filter(|f| f.id.starts_with("contrast."))
+    {
+        assert_eq!(finding.unit, "per_1k_tokens", "{}", finding.id);
+    }
+}
+
+#[test]
 fn verify_runs_general_imposters() {
     let fixture = Fixture::new("verify");
     let reference = fixture.reference();

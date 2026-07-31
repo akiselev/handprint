@@ -144,8 +144,18 @@ fn read_stdin() -> Result<String> {
 /// Load a fitted reference.
 pub fn load_reference(path: &Path) -> Result<Reference> {
     let text = read_file(path)?;
-    serde_json::from_str(&text)
-        .with_context(|| format!("{} is not a handprint reference", path.display()))
+    let reference: Reference = serde_json::from_str(&text)
+        .with_context(|| format!("{} is not a handprint reference", path.display()))?;
+    // Deserializing is not enough. A reference can parse cleanly and still be
+    // unusable on this build — a contrast vocabulary whose dimensions predate
+    // their becoming actionable, or dictionary syllables the binary was not
+    // built with. Both produce plausible numbers that mean something different
+    // from what the fit meant, so they are errors here rather than surprises
+    // later.
+    reference
+        .validate()
+        .with_context(|| format!("loading {}", path.display()))?;
+    Ok(reference)
 }
 
 /// Save a fitted reference.

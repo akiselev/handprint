@@ -323,6 +323,31 @@ impl Reference {
         )
     }
 
+    /// Check that this build can honor everything the fitted state records.
+    ///
+    /// Pre-1.0, handprint refits artifacts rather than migrating them, and a
+    /// serde default is normally the right way to load an older one: a missing
+    /// field means a missing dimension, and a missing dimension is honest. The
+    /// exception is a field whose absence would cause the artifact to be
+    /// *silently reinterpreted* — dimensions that quietly stop being reportable,
+    /// or syllables counted a different way than at fit. Those must fail loudly,
+    /// because the numbers they produce look entirely reasonable.
+    ///
+    /// Called on load by the CLI and on the first
+    /// [`Critic::review`](crate::Critic::review) of a loop.
+    pub fn validate(&self) -> Result<()> {
+        for feature in &self.features {
+            match feature {
+                Fitted::Contrast(vocab) => vocab.validate()?,
+                Fitted::Readability(readability) => {
+                    readability.syllable_method().check_supported()?
+                }
+                _ => {}
+            }
+        }
+        Ok(())
+    }
+
     /// The families present in this reference.
     pub fn families(&self) -> Vec<Family> {
         let mut families: Vec<Family> = self.dims.iter().map(|d| d.family).collect();
