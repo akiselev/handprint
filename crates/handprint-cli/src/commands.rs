@@ -9,8 +9,8 @@ use handprint_core::critique::{Critic, Mode};
 use handprint_core::feature::lexicon::Severity;
 use handprint_core::feature::vocab::Universe;
 use handprint_core::feature::{
-    CharNgrams, LexiconFeature, MostFrequentWords, PunctTypography, Richness, SentenceStats,
-    SurprisalLm,
+    BiberTier1, CharNgrams, LexiconFeature, MostFrequentWords, PunctTypography, Readability,
+    Richness, SentenceStats, SurprisalLm,
 };
 use handprint_core::reference::calibrate::CalibrationConfig;
 use handprint_core::verify::{impostor_pool, Thresholds, VerifyConfig};
@@ -45,6 +45,11 @@ fn fit(command: Command) -> Result<i32> {
         corpus,
         out,
         features,
+        pack,
+        pack_categories,
+        vocab,
+        config,
+        no_config,
         name,
         version,
         kind,
@@ -85,7 +90,47 @@ fn fit(command: Command) -> Result<i32> {
             FeatureArg::Richness => builder.feature(Richness::default()),
             FeatureArg::Lexicon => builder.feature(LexiconFeature::default()),
             FeatureArg::Surprisal => builder.feature(SurprisalLm::default()),
+            FeatureArg::Biber => builder.feature(BiberTier1::default()),
+            FeatureArg::Readability => builder.feature(Readability::default()),
+            FeatureArg::Hyland => builder.feature(builtin_pack_feature("hyland", true)?),
+            FeatureArg::DocStyle => builder.feature(builtin_pack_feature("doc-style", false)?),
+            FeatureArg::TechVoice => builder.feature(builtin_pack_feature("tech-voice", true)?),
         };
+    }
+
+    // Packs and vocabularies come from the flags and from `handprint.toml`.
+    // Both are additive: a project file declares what every contributor gets,
+    // and a flag adds to it for a one-off fit.
+    let project = if no_config {
+        None
+    } else {
+        load_config(config.as_deref())?
+    };
+    for path in &pack {
+        builder = builder.feature(load_pack_feature(path, pack_categories, None)?);
+    }
+    for path in &vocab {
+        builder = builder.feature(load_vocab(path)?);
+    }
+    if let Some((project_config, root)) = &project {
+        for declared in &project_config.packs {
+            let feature = match &declared.path {
+                Some(path) => load_pack_feature(
+                    &Config::resolve(root, path),
+                    declared.category_findings,
+                    Some(declared),
+                )?,
+                None => {
+                    let feature = builtin_pack_feature(&declared.name, declared.category_findings)?;
+                    check_pack_pin(&feature.pack, declared)?;
+                    feature
+                }
+            };
+            builder = builder.feature(feature);
+        }
+        for declared in &project_config.vocabs {
+            builder = builder.feature(load_vocab(&Config::resolve(root, &declared.path))?);
+        }
     }
 
     let reference = builder.fit(&corpus).context("fitting the reference")?;
@@ -105,12 +150,114 @@ fn fit(command: Command) -> Result<i32> {
         reference.families().len(),
         reference.exemplars().len()
     );
-    println!("wrote {}", out.display());
+    if !provenance.licenses.is_empty() {
+        println!("\nembedded data packs:");
+        for license in &provenance.licenses {
+            println!("  {license}");
+        }
+    }
+    println!("\nwrote {}", out.display());
+    if provenance.has_non_redistributable_pack() {
+        eprintln!(
+            "warning: this reference embeds a pack marked non-redistributable, so the reference \
+             inherits that restriction. Keep it local; do not publish it as a shipped pack."
+        );
+    }
     println!(
         "note: this reference has no calibration, so `critique` cannot evaluate its pass gate. \
          Run `handprint calibrate` against a background corpus."
     );
     Ok(0)
+}
+
+/// Load the project config, either from an explicit path or by discovery.
+fn load_config(explicit: Option<&Path>) -> Result<Option<(Config, PathBuf)>> {
+    match explicit {
+        Some(path) => Ok(Some((
+            Config::load(path)?,
+            path.parent().unwrap_or(Path::new(".")).to_path_buf(),
+        ))),
+        None => Config::discover(Path::new(".")),
+    }
+}
+
+/// Build a lexicon feature from a bundled pack.
+fn builtin_pack_feature(name: &str, category_findings: bool) -> Result<LexiconFeature> {
+    let pack = handprint_core::feature::packs::builtin(name).ok_or_else(|| {
+        anyhow::anyhow!(
+            "no bundled pack named {name:?}; `handprint pack list` shows what this binary carries"
+        )
+    })?;
+    let feature = LexiconFeature::new(pack);
+    Ok(if category_findings {
+        feature.category_findings()
+    } else {
+        feature
+    })
+}
+
+/// Load a lexicon pack from disk and wrap it as a feature.
+fn load_pack_feature(
+    path: &Path,
+    category_findings: bool,
+    declared: Option<&crate::config::Pack>,
+) -> Result<LexiconFeature> {
+    let text = std::fs::read_to_string(path)
+        .with_context(|| format!("reading pack {}", path.display()))?;
+    let pack: handprint_core::feature::LexiconPack =
+        serde_json::from_str(&text).with_context(|| format!("parsing pack {}", path.display()))?;
+    // Compile the patterns here rather than at fit: a pack is a file someone
+    // edited, and a pattern that silently never matches is indistinguishable
+    // from a genuine zero rate.
+    pack.validate_patterns()
+        .with_context(|| format!("in pack {}", path.display()))?;
+    if let Some(declared) = declared {
+        check_pack_pin(&pack, declared)?;
+    }
+    let feature = LexiconFeature::new(pack);
+    Ok(if category_findings {
+        feature.category_findings()
+    } else {
+        feature
+    })
+}
+
+/// Reject a pack whose identity does not match what the project pinned.
+///
+/// A pack is a dated artifact. Silently accepting `hyland@2027.03` where the
+/// project asked for `hyland@2026.08` would change what the project considers
+/// normal without anyone noticing — which is the exact failure the pin exists
+/// to prevent.
+fn check_pack_pin(
+    pack: &handprint_core::feature::LexiconPack,
+    declared: &crate::config::Pack,
+) -> Result<()> {
+    if pack.name != declared.name {
+        bail!(
+            "pack declares name {:?} but handprint.toml pinned {:?}",
+            pack.name,
+            declared.name
+        );
+    }
+    if let Some(version) = &declared.version {
+        if &pack.version != version {
+            bail!(
+                "pack {} is version {:?} but handprint.toml pinned {:?}; packs are dated \
+                 artifacts, so update the pin deliberately",
+                pack.name,
+                pack.version,
+                version
+            );
+        }
+    }
+    Ok(())
+}
+
+/// Load a contrast vocabulary produced by `handprint contrast --out`.
+fn load_vocab(path: &Path) -> Result<handprint_core::feature::ContrastVocab> {
+    let text = std::fs::read_to_string(path)
+        .with_context(|| format!("reading vocabulary {}", path.display()))?;
+    serde_json::from_str(&text).with_context(|| format!("parsing vocabulary {}", path.display()))
 }
 
 fn calibrate(command: Command) -> Result<i32> {
@@ -1026,6 +1173,18 @@ fn pack(command: PackCommand) -> Result<i32> {
                     count
                 );
             }
+            if !provenance.licenses.is_empty() {
+                println!("\n  embedded data packs:");
+                for license in &provenance.licenses {
+                    println!("    - {license}");
+                }
+                if provenance.has_non_redistributable_pack() {
+                    println!(
+                        "    ! this reference embeds a non-redistributable pack and inherits \
+                         that restriction"
+                    );
+                }
+            }
             if !provenance.notes.is_empty() {
                 println!("\n  notes:");
                 for note in &provenance.notes {
@@ -1034,8 +1193,13 @@ fn pack(command: PackCommand) -> Result<i32> {
             }
             Ok(0)
         }
-        PackCommand::Export { out } => {
-            let pack = handprint_core::feature::LexiconPack::ai_slop();
+        PackCommand::Export { pack: name, out } => {
+            let pack = handprint_core::feature::packs::builtin(&name).ok_or_else(|| {
+                anyhow::anyhow!(
+                    "no bundled pack named {name:?}; `handprint pack list` shows what this \
+                     binary carries"
+                )
+            })?;
             let json = serde_json::to_string_pretty(&pack)?;
             std::fs::write(&out, json).with_context(|| format!("writing {}", out.display()))?;
             println!(
@@ -1046,8 +1210,28 @@ fn pack(command: PackCommand) -> Result<i32> {
                 out.display()
             );
             println!(
-                "This is a dated seed list, not a fixture. AI-ism vocabularies decay per model \
-                 and per year; refit against a current corpus before relying on it."
+                "This is a dated list, not a fixture. Vocabularies decay — per model and per \
+                 year for AI-isms, per register for everything else. Refit against a current \
+                 corpus before relying on it."
+            );
+            Ok(0)
+        }
+        PackCommand::List => {
+            println!("{:<22} {:>7} {:>8}  license", "pack", "terms", "phrases");
+            for name in handprint_core::feature::packs::BUILTIN_PACKS {
+                let pack = handprint_core::feature::packs::builtin(name)
+                    .expect("every listed pack resolves");
+                println!(
+                    "{:<22} {:>7} {:>8}  {}",
+                    pack.qualified_name(),
+                    pack.terms.len(),
+                    pack.phrases.len(),
+                    pack.license
+                );
+            }
+            println!(
+                "\nExport one with `handprint pack export --pack <name> -o <file>`, then pin it \
+                 in handprint.toml. A pack in a file is a pack your project controls."
             );
             Ok(0)
         }

@@ -45,6 +45,25 @@
 //! keeps the reference's own metric, because there it really is a two-class
 //! comparison. Override either through [`CritiqueConfig::metric`].
 //!
+//! # The contract's value sets are open
+//!
+//! [`CONTRACT_VERSION`] pins the *shape* of the JSON: which keys exist, what
+//! types they hold, what they mean. It does not pin the set of values three of
+//! those keys can take.
+//!
+//! * [`Finding::family`] and the keys of [`DocInfo::confidence`] draw from
+//!   [`Family`], which is `#[non_exhaustive]` and gains variants as feature
+//!   families are added. A consumer will see `"register"`, `"rhythm"`,
+//!   `"device"`, `"syntax"`, `"verse"` and whatever comes next.
+//! * [`Fix::kind`] is a free `String` and always has been.
+//!
+//! **Consumers must tolerate unknown values in all three.** Adding a family is
+//! JSON-additive and Rust-source-compatible, so it is not a contract break and
+//! does not bump [`CONTRACT_VERSION`]. The one thing that *will* break is an
+//! external deserializer with a closed enum over family names and
+//! deny-unknown-variants semantics; this note is the disclaimer for that case.
+//! Match on the families you handle, pass the rest through.
+//!
 //! A fifth guard is about the text rather than the score: **drift**. A rewrite
 //! that deletes half the draft or changes its subject will score beautifully.
 //! [`Guards::drift_ok`] compares content-word and character-n-gram overlap
@@ -66,6 +85,10 @@ use crate::text::Document;
 use crate::vector::Symbol;
 
 /// Version of the JSON contract. Changes to it are semver-major for the crate.
+///
+/// Pins the document *shape*, not the value sets of `family`, `confidence` keys
+/// and `fix.kind` — those are open, and new values are additive. See the
+/// module docs.
 pub const CONTRACT_VERSION: &str = "1";
 
 /// Which question the critique is answering.

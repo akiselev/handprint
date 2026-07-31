@@ -133,6 +133,29 @@ pub struct Provenance {
     /// Whether the fitting corpus was flagged private.
     #[serde(default)]
     pub private: bool,
+    /// Every data pack this reference's fitted state embeds, with its license.
+    ///
+    /// A fitted feature that consumed a pack carries the pack's contents inside
+    /// itself — it has to, because `transform` is pure and cannot go looking for
+    /// a file. So the reference inherits the pack's terms, and a reference
+    /// fitted from a non-redistributable table is itself non-redistributable.
+    /// Recording it here is what lets a later reader find that out without
+    /// re-deriving the pipeline.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub licenses: Vec<String>,
+}
+
+impl Provenance {
+    /// Whether any embedded pack forbids redistribution.
+    ///
+    /// Reads the rollup strings rather than a separate flag so that an artifact
+    /// written by an older build — which has no rollup at all — reports `false`
+    /// rather than claiming a restriction it knows nothing about.
+    pub fn has_non_redistributable_pack(&self) -> bool {
+        self.licenses
+            .iter()
+            .any(|l| l.contains("NOT redistributable"))
+    }
 }
 
 /// Graded length warnings, tied to Eder's (2015/2017) findings on how much text
@@ -821,6 +844,16 @@ impl PipelineBuilder {
 
         let exemplar_count = self.exemplars.unwrap_or(DEFAULT_EXEMPLARS);
 
+        // Roll up the license of every data pack the fitted features embed, so
+        // the artifact carries its own redistribution terms.
+        let mut licenses: Vec<String> = features
+            .iter()
+            .flat_map(|f| f.pack_licenses())
+            .map(|l| l.describe())
+            .collect();
+        licenses.sort();
+        licenses.dedup();
+
         let mut reference = Reference {
             provenance: Provenance {
                 name: if self.name.is_empty() {
@@ -844,6 +877,7 @@ impl PipelineBuilder {
                 notes: self.notes,
                 handprint: crate::VERSION.to_owned(),
                 private: corpus.is_private(),
+                licenses,
             },
             tokenizer: self.tokenizer,
             interner,

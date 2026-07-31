@@ -23,6 +23,9 @@ pub struct Config {
     /// Declared packs.
     #[serde(default, rename = "pack")]
     pub packs: Vec<Pack>,
+    /// Declared contrast vocabularies, produced by `handprint contrast --out`.
+    #[serde(default, rename = "vocab")]
+    pub vocabs: Vec<Vocab>,
 }
 
 /// Project-level defaults.
@@ -46,7 +49,7 @@ pub struct Project {
     pub min_severity: Option<String>,
 }
 
-/// A declared pack: a versioned lexicon or fitted reference.
+/// A declared pack: a versioned lexicon, loaded at `fit` time.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Pack {
@@ -57,6 +60,28 @@ pub struct Pack {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
     /// Path to the pack file, relative to the config file.
+    ///
+    /// Omit it to load a pack bundled in the binary, named by `name`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<PathBuf>,
+    /// Report the *category* rates rather than the per-term rates.
+    ///
+    /// Right for taxonomy packs (Hyland metadiscourse, tech-voice moves) where
+    /// no single item is frequent enough at draft length to have a stable rate.
+    /// Wrong for the AI-slop pack, where the specific word is the finding.
+    #[serde(default)]
+    pub category_findings: bool,
+}
+
+/// A declared contrast vocabulary, loaded at `fit` time.
+///
+/// This is what closes the discover → fit → critique loop: the artifact
+/// `handprint contrast --out` writes becomes a feature on the next fit, so an
+/// author's signature lexis is *derived* rather than hand-listed.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Vocab {
+    /// Path to the `ContrastVocab` JSON, relative to the config file.
     pub path: PathBuf,
 }
 
@@ -113,6 +138,13 @@ max_findings = 5
 name = "ai-slop"
 version = "2026.07"
 path = "packs/ai-slop.json"
+
+[[pack]]
+name = "hyland"
+category_findings = true
+
+[[vocab]]
+path = "vocab/hst.json"
 "#;
 
     #[test]
@@ -124,8 +156,16 @@ path = "packs/ai-slop.json"
         );
         assert_eq!(config.project.profile.as_deref(), Some("strict"));
         assert_eq!(config.project.max_findings, Some(5));
-        assert_eq!(config.packs.len(), 1);
+        assert_eq!(config.packs.len(), 2);
         assert_eq!(config.packs[0].version.as_deref(), Some("2026.07"));
+        assert_eq!(
+            config.packs[0].path.as_deref(),
+            Some(Path::new("packs/ai-slop.json"))
+        );
+        // A pack with no path is a bundled one, named by `name`.
+        assert_eq!(config.packs[1].path, None);
+        assert!(config.packs[1].category_findings);
+        assert_eq!(config.vocabs.len(), 1);
     }
 
     #[test]

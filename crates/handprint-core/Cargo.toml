@@ -33,6 +33,10 @@ default = []
 parallel = ["dep:rayon"]
 # ANSI / HTML renderers for explanations.
 render = []
+# Verse scansion: the CMU pronouncing dictionary (~134k entries) and the
+# metrical feature family. Gated because the dictionary dominates the binary
+# size of a build that only ever profiles prose.
+verse = []
 
 [lints.rust]
 missing_docs = "warn"

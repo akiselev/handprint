@@ -489,6 +489,193 @@ fn forensic_commands_run() {
     assert!(html.starts_with("<!doctype html>"));
 }
 
+/// Clause fragments from an author who hedges constantly.
+const HEDGED: &[&str] = &[
+    "it seems fairly likely that the cache is stale, though I could be wrong",
+    "perhaps the numbers are roughly right, but I would not bet on it",
+    "this probably suggests the old path is usually slower, generally speaking",
+    "maybe we should assume it tends to fail sometimes under load",
+    "apparently the report indicates that things are broadly unclear here",
+    "I suspect the estimate is approximately correct, more or less",
+    "possibly the whole approach seems somewhat unlikely to hold up",
+    "it may be that the fix largely works, at least in most cases",
+];
+
+/// The same claims with every hedge deleted.
+const UNHEDGED: &[&str] = &[
+    "the cache is stale",
+    "the numbers are right and I will bet on it",
+    "the old path is slower",
+    "we should expect it to fail under load",
+    "the report states that things are settled here",
+    "the estimate is correct",
+    "the whole approach will not hold up",
+    "the fix works",
+];
+
+#[test]
+fn a_declared_pack_yields_category_findings_on_a_hedge_stripped_draft() {
+    // W1 acceptance. The corpus hedges; the draft does not; the Hyland pack is
+    // declared in `handprint.toml` rather than passed as a flag, which is the
+    // path every contributor to a project actually takes.
+    let dir = std::env::temp_dir().join(format!("handprint-hyland-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(dir.join("me")).unwrap();
+    for i in 0..24u64 {
+        std::fs::write(
+            dir.join("me").join(format!("doc{i:02}.txt")),
+            compose(700 + i, HEDGED, 14, "."),
+        )
+        .unwrap();
+    }
+    std::fs::write(
+        dir.join("handprint.toml"),
+        "[project]\nreference = \"me.json\"\n\n\
+         [[pack]]\nname = \"hyland\"\ncategory_findings = true\n",
+    )
+    .unwrap();
+
+    let run = |args: &[&str]| -> (i32, String, String) {
+        let output = Command::new(binary())
+            .args(args)
+            .current_dir(&dir)
+            .output()
+            .expect("running handprint");
+        (
+            output.status.code().unwrap_or(-1),
+            String::from_utf8_lossy(&output.stdout).into_owned(),
+            String::from_utf8_lossy(&output.stderr).into_owned(),
+        )
+    };
+
+    let (code, out, err) = run(&[
+        "fit",
+        "me",
+        "-o",
+        "me.json",
+        "--name",
+        "hedgy",
+        "--features",
+        "punct,sentence",
+    ]);
+    assert_eq!(code, 0, "fit failed: {err}\n{out}");
+    assert!(
+        out.contains("hyland@"),
+        "the declared pack's license should be rolled up into provenance: {out}"
+    );
+
+    std::fs::write(dir.join("draft.txt"), compose(701, UNHEDGED, 14, ".")).unwrap();
+    let (code, out, err) = run(&["critique", "draft.txt", "--max-findings", "50"]);
+    // The reference carries no calibration, so the gate is unevaluated (exit 2)
+    // — the findings are still the point of this test.
+    assert_eq!(code, 2, "{err}\n{out}");
+    let report: CritiqueReport = serde_json::from_str(&out).unwrap();
+
+    assert!(
+        report.doc.confidence.contains_key("lexicon"),
+        "confidence keys: {:?}",
+        report.doc.confidence.keys().collect::<Vec<_>>()
+    );
+    let hedges = report
+        .findings
+        .iter()
+        .find(|f| f.id == "lex.hyland.cat.hedges")
+        .unwrap_or_else(|| {
+            panic!(
+                "no hedge-category finding; got {:?}",
+                report.findings.iter().map(|f| &f.id).collect::<Vec<_>>()
+            )
+        });
+    assert_eq!(
+        hedges.direction,
+        handprint_core::critique::Direction::Increase,
+        "a hedge-stripped draft must be told to hedge more, not less"
+    );
+    assert!(hedges.observed < hedges.target_band[0]);
+    assert!(
+        hedges.message.contains("per 1k tokens"),
+        "{}",
+        hedges.message
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn the_register_family_reaches_the_contract_as_an_open_set_value() {
+    // W1 acceptance. `"register"` is a family string no earlier consumer had
+    // seen. It must appear in the contract unchanged, and the contract version
+    // must not move: value sets are open, the document shape is what is pinned.
+    let dir = std::env::temp_dir().join(format!("handprint-register-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(dir.join("me")).unwrap();
+    for i in 0..24u64 {
+        std::fs::write(
+            dir.join("me").join(format!("doc{i:02}.txt")),
+            compose(800 + i, HUMAN, 14, "."),
+        )
+        .unwrap();
+    }
+    let run = |args: &[&str]| -> (i32, String, String) {
+        let output = Command::new(binary())
+            .args(args)
+            .current_dir(&dir)
+            .output()
+            .expect("running handprint");
+        (
+            output.status.code().unwrap_or(-1),
+            String::from_utf8_lossy(&output.stdout).into_owned(),
+            String::from_utf8_lossy(&output.stderr).into_owned(),
+        )
+    };
+
+    let (code, _, err) = run(&[
+        "fit",
+        "me",
+        "-o",
+        "me.json",
+        "--no-config",
+        "--name",
+        "reg",
+        "--features",
+        "punct,sentence,biber,readability",
+    ]);
+    assert_eq!(code, 0, "fit failed: {err}");
+
+    std::fs::write(dir.join("draft.txt"), compose(801, SLOP, 14, ".")).unwrap();
+    let (_, out, _) = run(&[
+        "critique",
+        "-r",
+        "me.json",
+        "draft.txt",
+        "--max-findings",
+        "50",
+    ]);
+    let value: serde_json::Value = serde_json::from_str(&out).unwrap();
+    assert_eq!(
+        value["contract"],
+        handprint_core::critique::CONTRACT_VERSION
+    );
+    assert!(
+        value["doc"]["confidence"]["register"].is_string(),
+        "register must appear in the per-family confidence map: {}",
+        value["doc"]["confidence"]
+    );
+
+    let report: CritiqueReport = serde_json::from_str(&out).unwrap();
+    assert!(serde_json::to_string(&report).is_ok());
+    assert!(
+        report
+            .findings
+            .iter()
+            .any(|f| f.family == handprint_core::Family::Register),
+        "expected a register finding on slopped text; got {:?}",
+        report.findings.iter().map(|f| &f.id).collect::<Vec<_>>()
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 #[test]
 fn verify_runs_general_imposters() {
     let fixture = Fixture::new("verify");

@@ -16,19 +16,26 @@ use crate::error::Result;
 use crate::text::Analysis;
 use crate::vector::{Interner, Symbol, VectorBuilder};
 
+pub mod biber;
 pub mod char_ngram;
 pub mod lexicon;
 pub mod mfw;
+pub mod pack;
+pub mod packs;
 pub mod punct;
+pub mod readability;
 pub mod richness;
 pub mod sentence;
 pub mod surprisal;
 pub mod vocab;
 
+pub use biber::{BiberTier1, FittedBiber};
 pub use char_ngram::{CharNgrams, FittedCharNgrams, NgramType, NgramTypes};
 pub use lexicon::{FittedLexicon, LexiconFeature, LexiconPack, PackSource, Phrase, Term};
 pub use mfw::{FittedMfw, MostFrequentWords, VocabMode};
+pub use pack::{CountPack, NormEntry, NormPack};
 pub use punct::{FittedPunct, PunctTypography};
+pub use readability::{FittedReadability, Readability};
 pub use richness::{FittedRichness, Richness};
 pub use sentence::{FittedSentence, SentenceStats};
 pub use surprisal::{FittedSurprisal, SurprisalLm};
@@ -58,6 +65,9 @@ pub enum Family {
     Surprisal,
     /// Contrastively discovered vocabulary.
     Contrast,
+    /// Register: Biber lexico-grammatical rates, readability grades, weighted
+    /// norm densities, formality variance.
+    Register,
 }
 
 impl Family {
@@ -72,6 +82,7 @@ impl Family {
             Family::Lexicon => "lexicon",
             Family::Surprisal => "surprisal",
             Family::Contrast => "contrast",
+            Family::Register => "register",
         }
     }
 
@@ -87,6 +98,11 @@ impl Family {
             Family::Punct => (40, 100),
             Family::Lexicon => (40, 100),
             Family::Sentence => (60, 150),
+            // Closed-class rates stabilize faster than frequent-word
+            // distributions and slower than punctuation: a hedge or a modal is
+            // common enough to count in a paragraph, rare enough that a
+            // two-sentence draft says nothing about the rate.
+            Family::Register => (150, 600),
             Family::Surprisal => (100, 300),
             Family::Richness => (150, 500),
             Family::CharNgram => (300, 1000),
@@ -303,6 +319,42 @@ pub trait Feature {
     fn fit(&self, ctx: &FitContext<'_>, interner: &mut Interner) -> Result<Self::Fitted>;
 }
 
+/// A data pack embedded in a fitted feature, for the license rollup.
+///
+/// A fitted feature that consumed a pack carries that pack's contents inside
+/// its own state — which is the point (transform must be pure), and which means
+/// the reference inherits the pack's redistribution terms. Recording the terms
+/// on the artifact is the only way a later reader can tell.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PackLicense {
+    /// `name@version` of the pack.
+    pub pack: String,
+    /// The pack's declared license.
+    pub license: String,
+    /// Whether the pack may be shipped inside a published artifact.
+    pub redistributable: bool,
+}
+
+impl PackLicense {
+    /// A one-line rendering for [`Provenance::licenses`](crate::Provenance).
+    pub fn describe(&self) -> String {
+        format!(
+            "{} ({}{})",
+            self.pack,
+            if self.license.is_empty() {
+                "license unstated"
+            } else {
+                &self.license
+            },
+            if self.redistributable {
+                ""
+            } else {
+                ", NOT redistributable"
+            }
+        )
+    }
+}
+
 /// A fitted feature: pure, deterministic, serializable.
 pub trait FittedFeature {
     /// Write this feature's dimensions for one document.
@@ -313,6 +365,14 @@ pub trait FittedFeature {
 
     /// Which family this feature belongs to.
     fn family(&self) -> Family;
+
+    /// Data packs whose contents this fitted state embeds.
+    ///
+    /// Defaults to none, which is right for every feature whose state comes
+    /// from the corpus rather than from a shipped table.
+    fn pack_licenses(&self) -> Vec<PackLicense> {
+        Vec::new()
+    }
 }
 
 macro_rules! feature_kinds {
@@ -362,6 +422,9 @@ macro_rules! feature_kinds {
             fn family(&self) -> Family {
                 match self { $( Fitted::$variant(f) => f.family(), )* }
             }
+            fn pack_licenses(&self) -> Vec<PackLicense> {
+                match self { $( Fitted::$variant(f) => f.pack_licenses(), )* }
+            }
         }
 
         $(
@@ -389,6 +452,10 @@ feature_kinds! {
     Surprisal => SurprisalLm, FittedSurprisal;
     /// Contrastively discovered vocabulary, from `contrast::ContrastModel`.
     Contrast => ContrastVocab, FittedContrastVocab;
+    /// Biber Tier-1 lexico-grammatical rates.
+    Biber => BiberTier1, FittedBiber;
+    /// Readability grades, passive proxy, acronym density.
+    Readability => Readability, FittedReadability;
 }
 
 /// Rate per 1,000 tokens, guarding the zero-length case.

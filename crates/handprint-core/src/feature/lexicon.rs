@@ -19,7 +19,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use super::{per_1k, DimInfo, Family, Feature, FitContext, FittedFeature, Unit};
+use super::{per_1k, DimInfo, Family, Feature, FitContext, FittedFeature, PackLicense, Unit};
 use crate::error::{Error, Result};
 use crate::text::{Analysis, Span};
 use crate::vector::{Interner, Symbol, VectorBuilder};
@@ -120,6 +120,14 @@ pub struct LexiconPack {
     /// License of the pack contents.
     #[serde(default)]
     pub license: String,
+    /// Whether this pack may be shipped inside a published artifact.
+    ///
+    /// Defaults to true, which is right for every bundled pack. Set it false on
+    /// a pack derived from a research-only or non-commercial resource: a
+    /// reference fitted from it embeds the terms and inherits the restriction,
+    /// and the CLI warns when it writes such a reference.
+    #[serde(default = "crate::util::yes")]
+    pub redistributable: bool,
     /// Where the contents came from.
     #[serde(default)]
     pub sources: Vec<PackSource>,
@@ -152,6 +160,24 @@ impl LexiconPack {
     pub fn qualified_name(&self) -> String {
         format!("{}@{}", self.name, self.version)
     }
+
+    /// Compile every phrase pattern, so a malformed one is found at load time.
+    ///
+    /// `fit` would find it too, but only after loading a corpus and analyzing
+    /// every document. A pack is data a user edits; the error belongs where the
+    /// edit happened.
+    pub fn validate_patterns(&self) -> Result<()> {
+        for phrase in &self.phrases {
+            parse_pattern(&phrase.pattern).map_err(|e| match e {
+                Error::InvalidConfig { what, detail } => Error::InvalidConfig {
+                    what,
+                    detail: format!("{}: {detail}", phrase.id),
+                },
+                other => other,
+            })?;
+        }
+        Ok(())
+    }
 }
 
 /// Configuration for the lexicon family.
@@ -165,6 +191,22 @@ pub struct LexiconFeature {
     /// Emit the structural rules (rule of three, em-dash chains).
     #[serde(default = "crate::util::yes")]
     pub structural: bool,
+    /// Report the *category* rates rather than the per-term rates.
+    ///
+    /// The AI-slop pack's useful finding is "you wrote `delve`" — a specific
+    /// word with a specific replacement. A metadiscourse pack's useful finding
+    /// is the opposite: no single hedge occurs often enough at draft length to
+    /// have a stable rate, but the hedge *category* does, and "your hedging is
+    /// at 4 per 1k against a corpus band of 11–19" is exactly the instruction an
+    /// agent can act on.
+    ///
+    /// Setting this stops the `lex:{pack}:cat:{category}` dimensions being
+    /// marked as rollups, so they can become findings, and turns `per_term` off
+    /// by default — a hundred near-zero per-term dimensions would otherwise
+    /// crowd out everything else in the ranking. Existing packs are unaffected:
+    /// the flag defaults to false and serde-defaults on load.
+    #[serde(default)]
+    pub category_findings: bool,
 }
 
 impl Default for LexiconFeature {
@@ -173,6 +215,7 @@ impl Default for LexiconFeature {
             pack: LexiconPack::ai_slop(),
             per_term: true,
             structural: true,
+            category_findings: false,
         }
     }
 }
@@ -184,7 +227,20 @@ impl LexiconFeature {
             pack,
             per_term: true,
             structural: true,
+            category_findings: false,
         }
+    }
+
+    /// Report category rates instead of per-term rates.
+    ///
+    /// Also turns off `per_term` and the structural rules, which belong to the
+    /// AI-slop pack rather than to every pack. Call `per_term` back on
+    /// afterwards if a pack genuinely wants both.
+    pub fn category_findings(mut self) -> Self {
+        self.category_findings = true;
+        self.per_term = false;
+        self.structural = false;
+        self
     }
 }
 
@@ -217,6 +273,13 @@ pub struct FittedLexicon {
     dims: Vec<DimInfo>,
     pack_name: String,
     pack_version: String,
+    /// The pack's declared license, carried so a fitted reference can report
+    /// what it embeds. Serde-defaulted: a pre-rollup artifact loads unchanged
+    /// and simply reports nothing.
+    #[serde(default)]
+    pack_license: String,
+    #[serde(default = "crate::util::yes")]
+    redistributable: bool,
     rules: Vec<Rule>,
     /// Fast path for single-literal rules.
     words: HashMap<String, usize>,
@@ -376,7 +439,12 @@ impl Feature for LexiconFeature {
             .categories()
             .into_iter()
             .map(|cat| {
-                let sym = push_rollup(interner, format!("lex:{ns}:cat:{cat}"), &mut dims);
+                let name = format!("lex:{ns}:cat:{cat}");
+                let sym = if self.category_findings {
+                    push_dim(interner, name, &mut dims)
+                } else {
+                    push_rollup(interner, name, &mut dims)
+                };
                 (cat, sym)
             })
             .collect();
@@ -396,6 +464,8 @@ impl Feature for LexiconFeature {
             dims,
             pack_name: pack.name.clone(),
             pack_version: pack.version.clone(),
+            pack_license: pack.license.clone(),
+            redistributable: pack.redistributable,
             rules,
             words,
             categories,
@@ -412,6 +482,14 @@ impl FittedFeature for FittedLexicon {
 
     fn family(&self) -> Family {
         Family::Lexicon
+    }
+
+    fn pack_licenses(&self) -> Vec<PackLicense> {
+        vec![PackLicense {
+            pack: self.pack(),
+            license: self.pack_license.clone(),
+            redistributable: self.redistributable,
+        }]
     }
 
     fn transform(&self, analysis: &Analysis<'_>, out: &mut VectorBuilder) {
@@ -1314,6 +1392,7 @@ impl LexiconPack {
             date: "2026-07-31".into(),
             description: "Seed AI-style vocabulary and phrase patterns.".into(),
             license: "CC0-1.0".into(),
+            redistributable: true,
             sources: vec![
                 PackSource {
                     name: "berenslab/llm-excess-vocab".into(),
@@ -1462,6 +1541,74 @@ mod tests {
     }
 
     #[test]
+    fn category_findings_makes_the_category_rates_reportable() {
+        let corpus = Corpus::new();
+        let ctx = FitContext::new(&corpus, &[]);
+
+        // Default: categories are rollups and never become findings.
+        let mut interner = Interner::new();
+        let default = LexiconFeature::default().fit(&ctx, &mut interner).unwrap();
+        let sym = interner.get("lex:ai-slop:cat:hedge").unwrap();
+        let dim = default.dims().iter().find(|d| d.symbol == sym).unwrap();
+        assert!(dim.aggregate);
+
+        // With the flag: reportable, and the per-term dimensions are gone.
+        let mut interner = Interner::new();
+        let fitted = LexiconFeature::default()
+            .category_findings()
+            .fit(&ctx, &mut interner)
+            .unwrap();
+        let sym = interner.get("lex:ai-slop:cat:hedge").unwrap();
+        let dim = fitted.dims().iter().find(|d| d.symbol == sym).unwrap();
+        assert!(!dim.aggregate, "category rate must be reportable");
+        assert!(
+            interner.get("lex:ai-slop:word.delve").is_none(),
+            "per-term dimensions should be off"
+        );
+        // The pack total stays a rollup either way: "reduce your total lexicon
+        // rate" is not an instruction.
+        let total = interner.get("lex:ai-slop:total").unwrap();
+        assert!(
+            fitted
+                .dims()
+                .iter()
+                .find(|d| d.symbol == total)
+                .unwrap()
+                .aggregate
+        );
+    }
+
+    #[test]
+    fn category_rates_still_count_hits_when_per_term_is_off() {
+        let corpus = Corpus::new();
+        let ctx = FitContext::new(&corpus, &[]);
+        let mut interner = Interner::new();
+        let fitted = LexiconFeature::default()
+            .category_findings()
+            .fit(&ctx, &mut interner)
+            .unwrap();
+        let doc = Document::new("a tapestry of meticulous work");
+        let analysis = doc.analyze(&Tokenizer::default());
+        let mut b = VectorBuilder::new();
+        fitted.transform(&analysis, &mut b);
+        let v = b.build();
+        // Five lexical tokens, two excess-vocab hits -> 400 per 1k. The rules
+        // are still compiled and matched with per_term off; only the per-term
+        // dimensions are gone.
+        let cat = v.get(interner.get("lex:ai-slop:cat:excess_vocab").unwrap());
+        assert!((cat - 400.0).abs() < 1e-9, "{cat}");
+    }
+
+    #[test]
+    fn the_spec_flag_serde_defaults_so_old_artifacts_load_unchanged() {
+        let json = serde_json::to_string(&LexiconFeature::default()).unwrap();
+        let stripped = json.replace(",\"category_findings\":false", "");
+        let back: LexiconFeature = serde_json::from_str(&stripped).unwrap();
+        assert!(!back.category_findings);
+        assert_eq!(back, LexiconFeature::default());
+    }
+
+    #[test]
     fn custom_pack_namespaces_dimensions() {
         let pack = LexiconPack {
             name: "mypack".into(),
@@ -1469,6 +1616,7 @@ mod tests {
             date: "2026-07-31".into(),
             description: String::new(),
             license: String::new(),
+            redistributable: true,
             sources: vec![],
             terms: vec![Term {
                 id: "word.foo".into(),

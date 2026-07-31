@@ -76,6 +76,18 @@ pub enum FeatureArg {
     Lexicon,
     /// Corpus language-model surprisal.
     Surprisal,
+    /// Biber Tier-1 lexico-grammatical rates: the register backbone, and the
+    /// family the published LLM-vs-human deltas live in.
+    Biber,
+    /// Readability grades, passive-voice proxy, acronym density.
+    Readability,
+    /// The bundled Hyland metadiscourse pack, as category rates.
+    Hyland,
+    /// The bundled documentation style-guide pack (weasel words, wordy
+    /// phrases, clichés).
+    DocStyle,
+    /// The bundled tech-blogger voice pack, as category rates.
+    TechVoice,
 }
 
 /// Which threshold profile to hold a draft to.
@@ -130,6 +142,27 @@ pub enum Command {
         /// Feature families to include.
         #[arg(long, value_enum, value_delimiter = ',', default_values = ["punct", "sentence", "lexicon"])]
         features: Vec<FeatureArg>,
+        /// Load a lexicon pack from a JSON file and add it to the pipeline.
+        /// Repeatable. Also settable as `[[pack]]` in `handprint.toml`.
+        #[arg(long)]
+        pack: Vec<PathBuf>,
+        /// Report category rates rather than per-term rates for every `--pack`.
+        ///
+        /// Right for taxonomy packs, wrong for slop packs where the specific
+        /// word is the finding. Per-pack control needs `handprint.toml`.
+        #[arg(long)]
+        pack_categories: bool,
+        /// Load a contrast vocabulary (`contrast --out`) as a feature.
+        /// Repeatable. Also settable as `[[vocab]]` in `handprint.toml`.
+        #[arg(long)]
+        vocab: Vec<PathBuf>,
+        /// Path to an explicit `handprint.toml`. Without it, the nearest one
+        /// above the working directory is used.
+        #[arg(long)]
+        config: Option<PathBuf>,
+        /// Ignore `handprint.toml` entirely.
+        #[arg(long)]
+        no_config: bool,
         /// Name recorded in the artifact's provenance.
         #[arg(long, default_value = "unnamed")]
         name: String,
@@ -431,13 +464,18 @@ pub enum PackCommand {
         /// The reference file.
         path: PathBuf,
     },
-    /// Write the built-in AI-style lexicon to a file, as a starting point for a
+    /// Write a bundled lexicon pack to a file, as a starting point for a
     /// project-specific pack.
     Export {
+        /// Which bundled pack. See `handprint pack list`.
+        #[arg(long, default_value = "ai-slop")]
+        pack: String,
         /// Where to write it.
         #[arg(short, long)]
         out: PathBuf,
     },
+    /// List the packs bundled in this binary.
+    List,
 }
 
 fn main() {
