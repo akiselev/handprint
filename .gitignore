@@ -15,3 +15,13 @@ __pycache__/
 .venv/
 
 /corpus/
+
+# Battery corpora and build output. Four of the five battery authors are in
+# copyright and the Folger TEI is non-commercial; `eval/licenses/check.py`
+# fails the build if anything under these is ever tracked.
+/eval/corpora/*
+!/eval/corpora/README.md
+!/eval/corpora/chapterize.py
+/eval/raw/
+/eval/build/
+/eval/experiments/voice-transfer/artifacts/

@@ -44,6 +44,18 @@ jobs:
         env:
           RUSTDOCFLAGS: -D warnings
 
+  licenses:
+    # Loader-only tables must never be bundled and corpora must never be
+    # tracked. Both failures are invisible from inside the repository and
+    # obvious from outside it, which is exactly when a check earns its place.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python3 eval/licenses/check.py --verbose
+
   semver:
     # The critique JSON contract is versioned and its changes are semver-major.
     runs-on: ubuntu-latest

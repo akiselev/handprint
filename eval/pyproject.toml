@@ -1,0 +1,18 @@
+[project]
+name = "handprint-eval"
+version = "0.1.0"
+description = "Non-circular evaluation harness for handprint"
+requires-python = ">=3.10"
+dependencies = [
+    "sentence-transformers>=3.0",   # SBERT meaning preservation
+    "transformers>=4.44",           # LUAR, Style-Embedding, Binoculars
+    "torch>=2.3",
+    "numpy>=1.26",
+    "scipy>=1.13",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.5"]
+
+[tool.ruff]
+line-length = 88
