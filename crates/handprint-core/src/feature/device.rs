@@ -45,12 +45,13 @@
 //! underived adjectives (`big`, `red`). The error is the same on the corpus
 //! side and the draft side.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 
 use super::{
-    per_1k, ratio, DimInfo, Family, Feature, FitContext, FittedFeature, PackLicense, Unit,
+    burstiness_of, per_1k, ratio, DimInfo, Family, Feature, FitContext, FittedFeature,
+    PackLicense, Unit,
 };
 use crate::error::Result;
 use crate::feature::pack::{CountPack, NormPack};
@@ -198,6 +199,8 @@ pub struct FittedDevices {
     imperative: Symbol,
     headline: Vec<Symbol>,
     triplet: Symbol,
+    burstiness: Symbol,
+    para_share: Symbol,
     negative_parallelism: Symbol,
     /// Adjective–noun bigrams seen in the reference corpus, sorted. This is the
     /// feature's only corpus-relative state.
@@ -281,6 +284,9 @@ impl Feature for DeviceRates {
             })
             .collect();
         let triplet = push(interner, "dev:triplet_rate", Unit::PerThousandTokens);
+        // Spacing, not count. See `spacing`.
+        let burstiness = push(interner, "dev:device_burstiness", Unit::Index);
+        let para_share = push(interner, "dev:device_para_share", Unit::Fraction);
         let negative_parallelism = push(
             interner,
             "dev:negative_parallelism_rate",
@@ -290,13 +296,36 @@ impl Feature for DeviceRates {
         // The one corpus-relative step. Sorted so the fitted state is
         // byte-identical for a given corpus, the same rule the frequent-word
         // family follows.
+        //
+        // A pair must appear in **two** documents to count as one the corpus
+        // has seen. Taking the plain union instead scores every fitting
+        // document against a set built to include its own coinages, so each
+        // one measures exactly zero novelty, the fitted band collapses to
+        // [0, 0], and no unseen text can ever be inside it — not a pastiche,
+        // and not another chapter by the author themselves. This is a
+        // document-frequency stand-in for leave-one-out: cheap, and it leaves
+        // each document's genuinely idiosyncratic pairs out of its own
+        // reference set, which is the whole point of the dimension.
         let mut seen_bigrams: Vec<String> = Vec::new();
         if self.novelty {
-            let mut set: HashSet<String> = HashSet::new();
+            let mut frequency: HashMap<String, usize> = HashMap::new();
             for analysis in ctx.analyses() {
-                set.extend(adj_noun_bigrams(analysis).into_iter().map(|(text, _)| text));
+                let unique: HashSet<String> = adj_noun_bigrams(analysis)
+                    .into_iter()
+                    .map(|(text, _)| text)
+                    .collect();
+                for text in unique {
+                    *frequency.entry(text).or_insert(0) += 1;
+                }
             }
-            seen_bigrams = set.into_iter().collect();
+            // One document cannot supply a second occurrence of anything, so
+            // requiring two would call the entire corpus novel.
+            let floor = if ctx.len() >= 2 { 2 } else { 1 };
+            seen_bigrams = frequency
+                .into_iter()
+                .filter(|&(_, count)| count >= floor)
+                .map(|(text, _)| text)
+                .collect();
             seen_bigrams.sort();
         }
 
@@ -342,6 +371,8 @@ impl Feature for DeviceRates {
 
         Ok(FittedDevices {
             dims,
+            burstiness,
+            para_share,
             litotes,
             precision,
             epithet,
@@ -393,16 +424,108 @@ impl FittedFeature for FittedDevices {
         let stream = analysis.tokens();
         let lexical: Vec<(&str, Span)> = stream.lexical().map(|(t, f)| (f, t.span)).collect();
 
-        self.lexical_devices(&lexical, tokens, out);
-        self.wordnet_devices(analysis, &lexical, tokens, out);
-        self.novelty(analysis, tokens, out);
+        // Where the figurative hits land, not merely how many there are.
+        let mut hits: Vec<Span> = Vec::new();
+        self.lexical_devices(&lexical, tokens, out, &mut hits);
+        self.wordnet_devices(analysis, &lexical, tokens, out, &mut hits);
+        self.novelty(analysis, tokens, out, &mut hits);
         self.marketing(analysis, sentences, tokens, out);
+        self.spacing(analysis, &lexical, &mut hits, out);
     }
 }
 
 impl FittedDevices {
+
+    /// Where the figurative hits fall, as opposed to how many there are.
+    ///
+    /// A rate cannot tell eight devices clustered into two paragraphs from one
+    /// device in every paragraph, and blind judges reading pastiche name the
+    /// difference immediately and unprompted: "nearly every beat gets a simile
+    /// or aphorism, where the author would let some plain sentences breathe."
+    /// Prose flagged that way sits comfortably inside every rate band here,
+    /// because the count per thousand tokens is right and the *spacing* is not.
+    ///
+    /// Two dimensions, both two-sided:
+    ///
+    /// * `dev:device_burstiness` — the Goh–Barabási coefficient over the gaps
+    ///   between consecutive hits, `(sd - mean) / (sd + mean)`. It is -1 for a
+    ///   perfectly regular drumbeat, 0 for a Poisson scatter, and approaches 1
+    ///   when hits arrive in clumps with quiet between them. Bounded, so it
+    ///   does not need length correction.
+    /// * `dev:device_para_share` — the share of paragraphs carrying at least
+    ///   one hit. This is the judges' sentence rendered as a number.
+    ///
+    /// Only the figurative detectors feed this. Imperatives and headline
+    /// shapes are structural, and a marketing page is *supposed* to put one in
+    /// every block.
+    fn spacing(
+        &self,
+        analysis: &Analysis<'_>,
+        lexical: &[(&str, Span)],
+        hits: &mut Vec<Span>,
+        out: &mut VectorBuilder,
+    ) {
+        // Below a handful of hits the gap statistics are noise, and a
+        // confident number computed from two gaps is worse than no number.
+        const FLOOR: usize = 4;
+
+        hits.sort_by_key(|s| (s.start, s.end));
+        hits.dedup();
+
+        if hits.len() < FLOOR || lexical.len() < 2 {
+            out.mark_missing(self.burstiness);
+            out.mark_missing(self.para_share);
+            return;
+        }
+
+        // Gaps in *lexical tokens*, not bytes: a gap measured in bytes makes
+        // long words look like distance.
+        let mut index = Vec::with_capacity(hits.len());
+        let mut cursor = 0usize;
+        for hit in hits.iter() {
+            while cursor + 1 < lexical.len() && lexical[cursor].1.start < hit.start {
+                cursor += 1;
+            }
+            index.push(cursor);
+        }
+        let gaps: Vec<f64> = index
+            .windows(2)
+            .map(|w| (w[1].saturating_sub(w[0])) as f64)
+            .collect();
+        match burstiness_of(&gaps) {
+            Some(b) => out.set(self.burstiness, b),
+            None => out.mark_missing(self.burstiness),
+        }
+
+        let paragraphs: Vec<Span> = analysis
+            .structure()
+            .blocks
+            .iter()
+            .filter(|b| matches!(b.kind, crate::text::segment::BlockKind::Paragraph))
+            .map(|b| b.span)
+            .collect();
+        if paragraphs.is_empty() {
+            out.mark_missing(self.para_share);
+            return;
+        }
+        let carrying = paragraphs
+            .iter()
+            .filter(|p| {
+                hits.iter()
+                    .any(|h| h.start >= p.start && h.start < p.end)
+            })
+            .count();
+        out.set(self.para_share, ratio(carrying, paragraphs.len()));
+    }
+
     /// Litotes, absurd precision, transferred epithet, alliteration.
-    fn lexical_devices(&self, lexical: &[(&str, Span)], tokens: usize, out: &mut VectorBuilder) {
+    fn lexical_devices(
+        &self,
+        lexical: &[(&str, Span)],
+        tokens: usize,
+        out: &mut VectorBuilder,
+        hits: &mut Vec<Span>,
+    ) {
         let mut litotes = 0usize;
         let mut precision = 0usize;
         let mut epithets = 0usize;
@@ -420,7 +543,9 @@ impl FittedDevices {
                         )
                     {
                         litotes += 1;
-                        out.note_span(self.litotes, Span::new(span.start, next_span.end));
+                        let hit = Span::new(span.start, next_span.end);
+                        out.note_span(self.litotes, hit);
+                        hits.push(hit);
                         continue;
                     }
                 }
@@ -433,7 +558,9 @@ impl FittedDevices {
                     .find(|(f, _)| EXTREMES.contains(f))
                 {
                     litotes += 1;
-                    out.note_span(self.litotes, Span::new(span.start, other.end));
+                    let hit = Span::new(span.start, other.end);
+                    out.note_span(self.litotes, hit);
+                    hits.push(hit);
                     continue;
                 }
             }
@@ -448,7 +575,9 @@ impl FittedDevices {
                     .find(|(f, _)| COSMIC_NOUNS.contains(f))
                 {
                     precision += 1;
-                    out.note_span(self.precision, Span::new(span.start, other.end));
+                    let hit = Span::new(span.start, other.end);
+                    out.note_span(self.precision, hit);
+                    hits.push(hit);
                 }
             }
             // Transferred epithet: a mental-state adjective on a concrete noun.
@@ -459,7 +588,9 @@ impl FittedDevices {
                         .is_some_and(|c| c >= self.concrete_cut)
                     {
                         epithets += 1;
-                        out.note_span(self.epithet, Span::new(span.start, next_span.end));
+                        let hit = Span::new(span.start, next_span.end);
+                        out.note_span(self.epithet, hit);
+                        hits.push(hit);
                     }
                 }
             }
@@ -485,10 +616,10 @@ impl FittedDevices {
                 (_, Some(_)) => {
                     if run_len >= ALLITERATION_RUN {
                         runs += 1;
-                        out.note_span(
-                            self.alliteration,
-                            Span::new(lexical[run_start].1.start, lexical[i - 1].1.end),
-                        );
+                        let hit =
+                            Span::new(lexical[run_start].1.start, lexical[i - 1].1.end);
+                        out.note_span(self.alliteration, hit);
+                        hits.push(hit);
                     }
                     run_start = i;
                     run_len = 1;
@@ -504,13 +635,13 @@ impl FittedDevices {
         }
         if run_len >= ALLITERATION_RUN {
             runs += 1;
-            out.note_span(
-                self.alliteration,
-                Span::new(lexical[run_start].1.start, lexical[lexical.len() - 1].1.end),
-            );
+            let hit =
+                Span::new(lexical[run_start].1.start, lexical[lexical.len() - 1].1.end);
+            out.note_span(self.alliteration, hit);
+            hits.push(hit);
         }
         out.set(self.alliteration, per_1k(runs, tokens));
-        self.rhyme_chains(lexical, tokens, out);
+        self.rhyme_chains(lexical, tokens, out, hits);
     }
 
     /// Rhyme chains: two words within a short window sharing a rhyme key.
@@ -518,7 +649,13 @@ impl FittedDevices {
     /// Dict-method only. On the vowel-group method the dimension is marked
     /// missing, because the alternative is a letter-based detector that
     /// measures spelling and calls it sound.
-    fn rhyme_chains(&self, lexical: &[(&str, Span)], tokens: usize, out: &mut VectorBuilder) {
+    fn rhyme_chains(
+        &self,
+        lexical: &[(&str, Span)],
+        tokens: usize,
+        out: &mut VectorBuilder,
+        hits: &mut Vec<Span>,
+    ) {
         if !matches!(self.syllable_method, SyllableMethod::Dict { .. }) {
             out.mark_missing(self.rhyme);
             return;
@@ -534,7 +671,9 @@ impl FittedDevices {
                 }
                 if rhyme_key(other) == Some(key) {
                     chains += 1;
-                    out.note_span(self.rhyme, Span::new(span.start, other_span.end));
+                    let hit = Span::new(span.start, other_span.end);
+                    out.note_span(self.rhyme, hit);
+                    hits.push(hit);
                     break;
                 }
             }
@@ -549,6 +688,7 @@ impl FittedDevices {
         lexical: &[(&str, Span)],
         tokens: usize,
         out: &mut VectorBuilder,
+        hits: &mut Vec<Span>,
     ) {
         let (Some(antonym), Some(ambiguity)) = (self.antonym, self.ambiguity) else {
             return;
@@ -565,7 +705,9 @@ impl FittedDevices {
                 for (other, other_span) in &words[i + 1..] {
                     if self.are_antonyms(form, other) {
                         pairs += 1;
-                        out.note_span(antonym, Span::new(span.start, other_span.end));
+                        let hit = Span::new(span.start, other_span.end);
+                        out.note_span(antonym, hit);
+                        hits.push(hit);
                         break 'outer;
                     }
                 }
@@ -589,7 +731,13 @@ impl FittedDevices {
     }
 
     /// The novel adjective–noun bigram rate.
-    fn novelty(&self, analysis: &Analysis<'_>, tokens: usize, out: &mut VectorBuilder) {
+    fn novelty(
+        &self,
+        analysis: &Analysis<'_>,
+        tokens: usize,
+        out: &mut VectorBuilder,
+        hits: &mut Vec<Span>,
+    ) {
         let Some(sym) = self.novel_bigram else {
             return;
         };
@@ -625,6 +773,7 @@ impl FittedDevices {
             if weight > 0.0 {
                 novel += weight;
                 out.note_span(sym, *span);
+                hits.push(*span);
             }
         }
         out.set(
@@ -1019,16 +1168,114 @@ mod tests {
     }
 
     #[test]
+    fn burstiness_ranks_a_drumbeat_below_a_clump() {
+        // Perfectly even spacing: sd is zero, so the coefficient is -1.
+        let even = burstiness_of(&[10.0, 10.0, 10.0, 10.0]).unwrap();
+        assert!((even + 1.0).abs() < 1e-9, "even spacing should be -1, got {even}");
+
+        // The same number of events over the same span, arriving in a clump
+        // and then leaving a long silence.
+        let clumped = burstiness_of(&[1.0, 1.0, 1.0, 37.0]).unwrap();
+        assert!(clumped > even, "a clump must out-rank a drumbeat: {clumped} vs {even}");
+        assert!(clumped > 0.0, "a clump this uneven should be positive, got {clumped}");
+
+        // Bounded, whatever it is given.
+        for gaps in [vec![0.0, 0.0, 100.0], vec![1.0, 2.0, 3.0], vec![5.0, 5.0, 5.0]] {
+            let b = burstiness_of(&gaps).unwrap();
+            assert!((-1.0..=1.0).contains(&b), "out of range: {b}");
+        }
+
+        assert!(burstiness_of(&[7.0]).is_none(), "one gap is not a spread");
+    }
+
+    #[test]
+    fn a_device_in_every_paragraph_shows_a_higher_paragraph_share() {
+        // The paragraph share is the judges' sentence as a number, and unlike
+        // the gap statistic it is unambiguous on generated fixtures.
+        let device = "It was not entirely unlike a hardly enormous silence. ";
+        let filler = "The man walked down the road and opened the door slowly. ";
+        let mut even = String::new();
+        for _ in 0..6 {
+            even.push_str(device);
+            even.push_str(filler);
+            even.push_str("\n\n");
+        }
+        let mut clustered = String::new();
+        for _ in 0..2 {
+            for _ in 0..3 {
+                clustered.push_str(device);
+            }
+            clustered.push_str("\n\n");
+        }
+        for _ in 0..4 {
+            clustered.push_str(filler);
+            clustered.push_str("\n\n");
+        }
+        let share = |text: &str| {
+            let (v, i) = transform(DeviceRates::default(), text);
+            v.get(i.get("dev:device_para_share").unwrap())
+        };
+        let (even_share, clustered_share) = (share(&even), share(&clustered));
+        assert!(
+            even_share > clustered_share,
+            "a device in every paragraph must score a higher share: even={even_share} clustered={clustered_share}"
+        );
+        assert!((even_share - 1.0).abs() < 1e-9, "every paragraph carries one: {even_share}");
+    }
+
+    fn spacing_is_missing_rather_than_zero_below_the_hit_floor() {
+        // Two hits give one gap, and a burstiness computed from one gap is a
+        // number with no information in it. Missing is the honest answer.
+        let (v, i) = transform(DeviceRates::default(), "It was not entirely calm. The end.");
+        assert!(v.is_missing(i.get("dev:device_burstiness").unwrap()));
+    }
+
+    #[test]
     fn the_novel_bigram_set_is_deterministic_and_sorted() {
+        // "moody forkful" appears in both documents, so it is a pair the
+        // corpus has established. The once-only pairs are not.
+        // "gloomy sandwich" is in both documents; "moody breakfast" is in one.
+        // (`forkful` is not usable here — the `-ful` suffix makes the detector
+        // read it as an adjective, so "moody forkful" is never a pair at all.)
         let corpus = [
-            "a moody forkful and a gloomy sandwich",
-            "the hollow silence",
+            "a gloomy sandwich and a moody breakfast",
+            "the gloomy sandwich returned",
         ];
         let (a, _) = fit_on(DeviceRates::default(), &corpus);
         let (b, _) = fit_on(DeviceRates::default(), &corpus);
         assert_eq!(a.seen_bigrams(), b.seen_bigrams());
         assert!(a.seen_bigrams().windows(2).all(|w| w[0] < w[1]));
         assert!(!a.seen_bigrams().is_empty());
+    }
+
+    #[test]
+    fn a_fitting_document_still_scores_its_own_coinages_as_novel() {
+        // The band for this dimension is estimated by profiling the fitting
+        // documents. Under a plain union each of them scores exactly zero,
+        // the band collapses to [0, 0], and nothing unseen can ever be inside
+        // it — a held-out chapter by the author scores z = +60 against their
+        // own reference. Requiring a pair in two documents is what keeps the
+        // fitted spread real.
+        // "gloomy sandwich" is in both documents; "moody breakfast" is in one.
+        // (`forkful` is not usable here — the `-ful` suffix makes the detector
+        // read it as an adjective, so "moody forkful" is never a pair at all.)
+        let corpus = [
+            "a gloomy sandwich and a moody breakfast",
+            "the gloomy sandwich returned",
+        ];
+        let (fitted, interner) = fit_on(DeviceRates::default(), &corpus);
+        let sym = interner.get("dev:novel_adj_noun_rate").unwrap();
+        let score = |text: &str| {
+            let doc = Document::new(text);
+            let a = doc.analyze(&Tokenizer::default());
+            let mut b = VectorBuilder::new();
+            fitted.transform(&a, &mut b);
+            b.build().get(sym)
+        };
+        // "moody breakfast" occurs in one document only, so it stays novel.
+        assert!(score(corpus[0]) > 0.0);
+        // The pair both documents share does not.
+        assert_eq!(score("the gloomy sandwich returned"), 0.0);
     }
 
     #[test]

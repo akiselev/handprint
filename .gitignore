@@ -22,6 +22,11 @@ __pycache__/
 /eval/corpora/*
 !/eval/corpora/README.md
 !/eval/corpora/chapterize.py
+!/eval/corpora/epub2md.py
+!/eval/corpora/fetch_gutenberg.py
+!/eval/corpora/exclude.json
+!/eval/corpora/rebuild.sh
+!/eval/corpora/refit.sh
 /eval/raw/
 /eval/build/
 /eval/experiments/voice-transfer/artifacts/

@@ -116,6 +116,11 @@ def check_tracked_corpora() -> list[str]:
     ALLOWED = {
         "eval/corpora/README.md",
         "eval/corpora/chapterize.py",
+        "eval/corpora/epub2md.py",
+        "eval/corpora/fetch_gutenberg.py",
+        # Names the *sections* of in-copyright books that a different person
+        # wrote, so they can be dropped. It carries no corpus text.
+        "eval/corpora/exclude.json",
     }
 
     failures = []

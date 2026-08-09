@@ -1,0 +1,1201 @@
+{
+ "source": {
+  "targets": [],
+  "scores": {
+   "alexandre-dumas": 0.004315453827560189,
+   "arthur-conan-doyle": 0.009083983519658785,
+   "charles-dickens": 0.04098119539103327,
+   "charlotte-bront\u00eb": 0.020016283403168356,
+   "douglas-adams": 0.004711690784637837,
+   "edgar-allan-poe": 0.0,
+   "emily-bront\u00eb": 0.02082722897119603,
+   "fyodor-dostoyevsky": 0.016181995261897408,
+   "graf-leo-tolstoy": 0.01502667160569399,
+   "h-g-wells": 0.034075679112721025,
+   "henry-david-thoreau": 0.005459276962015018,
+   "herman-melville": 0.0041341758077812485,
+   "hermann-hesse": 0.12460550302813189,
+   "homer": 0.0,
+   "jacob-grimm": 0.018797491639999636,
+   "james-joyce": 0.004825153830756167,
+   "jane-austen": 0.003580704190619414,
+   "jerome-k-jerome": 0.03433897567287872,
+   "john-milton": 0.056499999999999995,
+   "l-m-montgomery": 0.09921671309822203,
+   "mark-twain": 0.008650760048460899,
+   "michel-de-montaigne": 0.0,
+   "niccol\u00f2-machiavelli": 0.00478809351827541,
+   "oscar-wilde": 0.006086662570619282,
+   "p-g-wodehouse": 0.03083300434293637,
+   "plato": 0.010733898049780413,
+   "terry-pratchett": 0.028901081506248823,
+   "walt-whitman": 0.0021087834276765725
+  },
+  "findings": {
+   "alexandre-dumas": {
+    "total": 66,
+    "gated": 45
+   },
+   "arthur-conan-doyle": {
+    "total": 70,
+    "gated": 49
+   },
+   "charles-dickens": {
+    "total": 63,
+    "gated": 42
+   },
+   "charlotte-bront\u00eb": {
+    "total": 77,
+    "gated": 58
+   },
+   "douglas-adams": {
+    "total": 44,
+    "gated": 34
+   },
+   "edgar-allan-poe": {
+    "total": 73,
+    "gated": 53
+   },
+   "emily-bront\u00eb": {
+    "total": 88,
+    "gated": 61
+   },
+   "fyodor-dostoyevsky": {
+    "total": 67,
+    "gated": 52
+   },
+   "graf-leo-tolstoy": {
+    "total": 61,
+    "gated": 39
+   },
+   "h-g-wells": {
+    "total": 60,
+    "gated": 40
+   },
+   "henry-david-thoreau": {
+    "total": 78,
+    "gated": 60
+   },
+   "herman-melville": {
+    "total": 72,
+    "gated": 51
+   },
+   "hermann-hesse": {
+    "total": 78,
+    "gated": 59
+   },
+   "homer": {
+    "total": 58,
+    "gated": 43
+   },
+   "jacob-grimm": {
+    "total": 72,
+    "gated": 56
+   },
+   "james-joyce": {
+    "total": 36,
+    "gated": 27
+   },
+   "jane-austen": {
+    "total": 67,
+    "gated": 51
+   },
+   "jerome-k-jerome": {
+    "total": 62,
+    "gated": 44
+   },
+   "john-milton": {
+    "total": 84,
+    "gated": 66
+   },
+   "l-m-montgomery": {
+    "total": 72,
+    "gated": 57
+   },
+   "mark-twain": {
+    "total": 37,
+    "gated": 24
+   },
+   "michel-de-montaigne": {
+    "total": 76,
+    "gated": 62
+   },
+   "niccol\u00f2-machiavelli": {
+    "total": 78,
+    "gated": 54
+   },
+   "oscar-wilde": {
+    "total": 49,
+    "gated": 36
+   },
+   "p-g-wodehouse": {
+    "total": 58,
+    "gated": 36
+   },
+   "plato": {
+    "total": 60,
+    "gated": 49
+   },
+   "terry-pratchett": {
+    "total": 61,
+    "gated": 47
+   },
+   "walt-whitman": {
+    "total": 73,
+    "gated": 55
+   }
+  },
+  "tokens": 800
+ },
+ "adams": {
+  "targets": [
+   "douglas-adams"
+  ],
+  "scores": {
+   "alexandre-dumas": 0.00699168906207954,
+   "arthur-conan-doyle": 0.018302485736301853,
+   "charles-dickens": 0.015905343939085,
+   "charlotte-bront\u00eb": 0.00867833900823153,
+   "douglas-adams": 0.009607923398261565,
+   "edgar-allan-poe": 0.004711836848679698,
+   "emily-bront\u00eb": 0.018152171574917025,
+   "fyodor-dostoyevsky": 0.023546778556624005,
+   "graf-leo-tolstoy": 0.010216635674037508,
+   "h-g-wells": 0.01769222165140987,
+   "henry-david-thoreau": 0.01068432701434241,
+   "herman-melville": 0.008663582190549947,
+   "hermann-hesse": 0.014031690470735454,
+   "homer": 0.0,
+   "jacob-grimm": 0.01507435215146947,
+   "james-joyce": 0.010283232577751912,
+   "jane-austen": 0.006735871405535282,
+   "jerome-k-jerome": 0.019107561564504775,
+   "john-milton": 0.0036519257277375363,
+   "l-m-montgomery": 0.01677695137776647,
+   "mark-twain": 0.04400635466786069,
+   "michel-de-montaigne": 0.00243217885529061,
+   "niccol\u00f2-machiavelli": 0.007409976564003519,
+   "oscar-wilde": 0.0032686827090843513,
+   "p-g-wodehouse": 0.041767972723149575,
+   "plato": 0.02086803474117434,
+   "terry-pratchett": 0.0494686058314073,
+   "walt-whitman": 0.005682178855290585
+  },
+  "findings": {
+   "alexandre-dumas": {
+    "total": 55,
+    "gated": 40
+   },
+   "arthur-conan-doyle": {
+    "total": 56,
+    "gated": 42
+   },
+   "charles-dickens": {
+    "total": 54,
+    "gated": 38
+   },
+   "charlotte-bront\u00eb": {
+    "total": 63,
+    "gated": 49
+   },
+   "douglas-adams": {
+    "total": 40,
+    "gated": 28
+   },
+   "edgar-allan-poe": {
+    "total": 66,
+    "gated": 48
+   },
+   "emily-bront\u00eb": {
+    "total": 76,
+    "gated": 53
+   },
+   "fyodor-dostoyevsky": {
+    "total": 62,
+    "gated": 46
+   },
+   "graf-leo-tolstoy": {
+    "total": 56,
+    "gated": 37
+   },
+   "h-g-wells": {
+    "total": 55,
+    "gated": 36
+   },
+   "henry-david-thoreau": {
+    "total": 66,
+    "gated": 49
+   },
+   "herman-melville": {
+    "total": 62,
+    "gated": 41
+   },
+   "hermann-hesse": {
+    "total": 68,
+    "gated": 50
+   },
+   "homer": {
+    "total": 50,
+    "gated": 36
+   },
+   "jacob-grimm": {
+    "total": 67,
+    "gated": 51
+   },
+   "james-joyce": {
+    "total": 29,
+    "gated": 21
+   },
+   "jane-austen": {
+    "total": 57,
+    "gated": 40
+   },
+   "jerome-k-jerome": {
+    "total": 52,
+    "gated": 33
+   },
+   "john-milton": {
+    "total": 80,
+    "gated": 65
+   },
+   "l-m-montgomery": {
+    "total": 70,
+    "gated": 52
+   },
+   "mark-twain": {
+    "total": 27,
+    "gated": 17
+   },
+   "michel-de-montaigne": {
+    "total": 71,
+    "gated": 57
+   },
+   "niccol\u00f2-machiavelli": {
+    "total": 68,
+    "gated": 46
+   },
+   "oscar-wilde": {
+    "total": 38,
+    "gated": 26
+   },
+   "p-g-wodehouse": {
+    "total": 47,
+    "gated": 32
+   },
+   "plato": {
+    "total": 55,
+    "gated": 38
+   },
+   "terry-pratchett": {
+    "total": 55,
+    "gated": 39
+   },
+   "walt-whitman": {
+    "total": 67,
+    "gated": 50
+   }
+  },
+  "tokens": 970
+ },
+ "austen": {
+  "targets": [
+   "jane-austen"
+  ],
+  "scores": {
+   "alexandre-dumas": 0.011118899804202909,
+   "arthur-conan-doyle": 0.017861311662464026,
+   "charles-dickens": 0.047369916548964636,
+   "charlotte-bront\u00eb": 0.050704631320466216,
+   "douglas-adams": 0.012759656635743848,
+   "edgar-allan-poe": 0.006615785960680871,
+   "emily-bront\u00eb": 0.050490003729996596,
+   "fyodor-dostoyevsky": 0.027676616471134865,
+   "graf-leo-tolstoy": 0.035171921093874306,
+   "h-g-wells": 0.06449729744997332,
+   "henry-david-thoreau": 0.018809882628511146,
+   "herman-melville": 0.010385813529597466,
+   "hermann-hesse": 0.20490195781507545,
+   "homer": 0.0010355578588712609,
+   "jacob-grimm": 0.03276189699766227,
+   "james-joyce": 0.019611098703074106,
+   "jane-austen": 0.020410554905354775,
+   "jerome-k-jerome": 0.04187139738136929,
+   "john-milton": 0.10962149731604123,
+   "l-m-montgomery": 0.13518928103929503,
+   "mark-twain": 0.0468921333702114,
+   "michel-de-montaigne": 0.004936027264294366,
+   "niccol\u00f2-machiavelli": 0.020622142001207072,
+   "oscar-wilde": 0.015092474562761533,
+   "p-g-wodehouse": 0.03681155605826768,
+   "plato": 0.028225744729526797,
+   "terry-pratchett": 0.026779165714277076,
+   "walt-whitman": 0.0027117277346401544
+  },
+  "findings": {
+   "alexandre-dumas": {
+    "total": 46,
+    "gated": 38
+   },
+   "arthur-conan-doyle": {
+    "total": 60,
+    "gated": 43
+   },
+   "charles-dickens": {
+    "total": 41,
+    "gated": 30
+   },
+   "charlotte-bront\u00eb": {
+    "total": 60,
+    "gated": 43
+   },
+   "douglas-adams": {
+    "total": 38,
+    "gated": 27
+   },
+   "edgar-allan-poe": {
+    "total": 45,
+    "gated": 33
+   },
+   "emily-bront\u00eb": {
+    "total": 67,
+    "gated": 49
+   },
+   "fyodor-dostoyevsky": {
+    "total": 56,
+    "gated": 46
+   },
+   "graf-leo-tolstoy": {
+    "total": 42,
+    "gated": 31
+   },
+   "h-g-wells": {
+    "total": 47,
+    "gated": 35
+   },
+   "henry-david-thoreau": {
+    "total": 55,
+    "gated": 41
+   },
+   "herman-melville": {
+    "total": 48,
+    "gated": 38
+   },
+   "hermann-hesse": {
+    "total": 59,
+    "gated": 47
+   },
+   "homer": {
+    "total": 43,
+    "gated": 29
+   },
+   "jacob-grimm": {
+    "total": 71,
+    "gated": 50
+   },
+   "james-joyce": {
+    "total": 26,
+    "gated": 20
+   },
+   "jane-austen": {
+    "total": 45,
+    "gated": 36
+   },
+   "jerome-k-jerome": {
+    "total": 45,
+    "gated": 28
+   },
+   "john-milton": {
+    "total": 79,
+    "gated": 60
+   },
+   "l-m-montgomery": {
+    "total": 72,
+    "gated": 54
+   },
+   "mark-twain": {
+    "total": 25,
+    "gated": 14
+   },
+   "michel-de-montaigne": {
+    "total": 62,
+    "gated": 40
+   },
+   "niccol\u00f2-machiavelli": {
+    "total": 57,
+    "gated": 43
+   },
+   "oscar-wilde": {
+    "total": 36,
+    "gated": 28
+   },
+   "p-g-wodehouse": {
+    "total": 50,
+    "gated": 35
+   },
+   "plato": {
+    "total": 40,
+    "gated": 28
+   },
+   "terry-pratchett": {
+    "total": 58,
+    "gated": 43
+   },
+   "walt-whitman": {
+    "total": 68,
+    "gated": 48
+   }
+  },
+  "tokens": 881
+ },
+ "blend-adams-pratchett": {
+  "targets": [
+   "douglas-adams",
+   "terry-pratchett"
+  ],
+  "scores": {
+   "alexandre-dumas": 0.007155227583201942,
+   "arthur-conan-doyle": 0.01909371417151126,
+   "charles-dickens": 0.011502399225935933,
+   "charlotte-bront\u00eb": 0.009054477606813053,
+   "douglas-adams": 0.012337449547439419,
+   "edgar-allan-poe": 0.004468940809607209,
+   "emily-bront\u00eb": 0.01865801200496405,
+   "fyodor-dostoyevsky": 0.024429886570684962,
+   "graf-leo-tolstoy": 0.012367258536005607,
+   "h-g-wells": 0.01524712074490348,
+   "henry-david-thoreau": 0.013322462259877568,
+   "herman-melville": 0.0076997399236720596,
+   "hermann-hesse": 0.014130000002414479,
+   "homer": 0.0,
+   "jacob-grimm": 0.017257431505668663,
+   "james-joyce": 0.01186289563341874,
+   "jane-austen": 0.005730426835216192,
+   "jerome-k-jerome": 0.03346518502997057,
+   "john-milton": 0.0010000000000000009,
+   "l-m-montgomery": 0.015411844395409595,
+   "mark-twain": 0.04906030370931682,
+   "michel-de-montaigne": 0.001220667199730654,
+   "niccol\u00f2-machiavelli": 0.007468646370641116,
+   "oscar-wilde": 0.0031327617793229135,
+   "p-g-wodehouse": 0.05896988176551918,
+   "plato": 0.020653019642561832,
+   "terry-pratchett": 0.05752076676387671,
+   "walt-whitman": 0.005894778932749694
+  },
+  "findings": {
+   "alexandre-dumas": {
+    "total": 53,
+    "gated": 42
+   },
+   "arthur-conan-doyle": {
+    "total": 57,
+    "gated": 41
+   },
+   "charles-dickens": {
+    "total": 50,
+    "gated": 36
+   },
+   "charlotte-bront\u00eb": {
+    "total": 65,
+    "gated": 50
+   },
+   "douglas-adams": {
+    "total": 38,
+    "gated": 25
+   },
+   "edgar-allan-poe": {
+    "total": 59,
+    "gated": 42
+   },
+   "emily-bront\u00eb": {
+    "total": 76,
+    "gated": 53
+   },
+   "fyodor-dostoyevsky": {
+    "total": 60,
+    "gated": 47
+   },
+   "graf-leo-tolstoy": {
+    "total": 52,
+    "gated": 35
+   },
+   "h-g-wells": {
+    "total": 52,
+    "gated": 35
+   },
+   "henry-david-thoreau": {
+    "total": 69,
+    "gated": 52
+   },
+   "herman-melville": {
+    "total": 65,
+    "gated": 41
+   },
+   "hermann-hesse": {
+    "total": 66,
+    "gated": 51
+   },
+   "homer": {
+    "total": 49,
+    "gated": 36
+   },
+   "jacob-grimm": {
+    "total": 67,
+    "gated": 50
+   },
+   "james-joyce": {
+    "total": 24,
+    "gated": 18
+   },
+   "jane-austen": {
+    "total": 60,
+    "gated": 39
+   },
+   "jerome-k-jerome": {
+    "total": 53,
+    "gated": 39
+   },
+   "john-milton": {
+    "total": 79,
+    "gated": 64
+   },
+   "l-m-montgomery": {
+    "total": 71,
+    "gated": 50
+   },
+   "mark-twain": {
+    "total": 27,
+    "gated": 16
+   },
+   "michel-de-montaigne": {
+    "total": 69,
+    "gated": 53
+   },
+   "niccol\u00f2-machiavelli": {
+    "total": 66,
+    "gated": 49
+   },
+   "oscar-wilde": {
+    "total": 38,
+    "gated": 27
+   },
+   "p-g-wodehouse": {
+    "total": 49,
+    "gated": 34
+   },
+   "plato": {
+    "total": 57,
+    "gated": 40
+   },
+   "terry-pratchett": {
+    "total": 53,
+    "gated": 42
+   },
+   "walt-whitman": {
+    "total": 65,
+    "gated": 45
+   }
+  },
+  "tokens": 927
+ },
+ "jerome": {
+  "targets": [
+   "jerome-k-jerome"
+  ],
+  "scores": {
+   "alexandre-dumas": 0.008468338962577617,
+   "arthur-conan-doyle": 0.027076334125300985,
+   "charles-dickens": 0.06461341918467034,
+   "charlotte-bront\u00eb": 0.048802532096143214,
+   "douglas-adams": 0.010920320368279682,
+   "edgar-allan-poe": 0.0057376920843575496,
+   "emily-bront\u00eb": 0.043538512531669495,
+   "fyodor-dostoyevsky": 0.0343736056864026,
+   "graf-leo-tolstoy": 0.031709937601033654,
+   "h-g-wells": 0.06933821456961752,
+   "henry-david-thoreau": 0.015131239998599144,
+   "herman-melville": 0.006291329569533405,
+   "hermann-hesse": 0.2001599032879396,
+   "homer": 0.0,
+   "jacob-grimm": 0.0358956380845591,
+   "james-joyce": 0.015918424117993137,
+   "jane-austen": 0.010564758445153602,
+   "jerome-k-jerome": 0.046488655178647864,
+   "john-milton": 0.09977316439654528,
+   "l-m-montgomery": 0.13868340579453928,
+   "mark-twain": 0.06410407044450624,
+   "michel-de-montaigne": 0.004876596838008852,
+   "niccol\u00f2-machiavelli": 0.009544996289357626,
+   "oscar-wilde": 0.025587876221365623,
+   "p-g-wodehouse": 0.0778985768281829,
+   "plato": 0.024548656889942615,
+   "terry-pratchett": 0.06668960673684907,
+   "walt-whitman": 0.005755251901282567
+  },
+  "findings": {
+   "alexandre-dumas": {
+    "total": 42,
+    "gated": 30
+   },
+   "arthur-conan-doyle": {
+    "total": 48,
+    "gated": 37
+   },
+   "charles-dickens": {
+    "total": 39,
+    "gated": 27
+   },
+   "charlotte-bront\u00eb": {
+    "total": 56,
+    "gated": 39
+   },
+   "douglas-adams": {
+    "total": 36,
+    "gated": 24
+   },
+   "edgar-allan-poe": {
+    "total": 49,
+    "gated": 32
+   },
+   "emily-bront\u00eb": {
+    "total": 71,
+    "gated": 47
+   },
+   "fyodor-dostoyevsky": {
+    "total": 57,
+    "gated": 40
+   },
+   "graf-leo-tolstoy": {
+    "total": 48,
+    "gated": 32
+   },
+   "h-g-wells": {
+    "total": 39,
+    "gated": 26
+   },
+   "henry-david-thoreau": {
+    "total": 62,
+    "gated": 41
+   },
+   "herman-melville": {
+    "total": 52,
+    "gated": 36
+   },
+   "hermann-hesse": {
+    "total": 64,
+    "gated": 46
+   },
+   "homer": {
+    "total": 39,
+    "gated": 28
+   },
+   "jacob-grimm": {
+    "total": 65,
+    "gated": 47
+   },
+   "james-joyce": {
+    "total": 25,
+    "gated": 19
+   },
+   "jane-austen": {
+    "total": 56,
+    "gated": 34
+   },
+   "jerome-k-jerome": {
+    "total": 40,
+    "gated": 24
+   },
+   "john-milton": {
+    "total": 77,
+    "gated": 58
+   },
+   "l-m-montgomery": {
+    "total": 65,
+    "gated": 47
+   },
+   "mark-twain": {
+    "total": 18,
+    "gated": 11
+   },
+   "michel-de-montaigne": {
+    "total": 62,
+    "gated": 45
+   },
+   "niccol\u00f2-machiavelli": {
+    "total": 65,
+    "gated": 37
+   },
+   "oscar-wilde": {
+    "total": 32,
+    "gated": 23
+   },
+   "p-g-wodehouse": {
+    "total": 39,
+    "gated": 27
+   },
+   "plato": {
+    "total": 46,
+    "gated": 29
+   },
+   "terry-pratchett": {
+    "total": 43,
+    "gated": 34
+   },
+   "walt-whitman": {
+    "total": 61,
+    "gated": 43
+   }
+  },
+  "tokens": 955
+ },
+ "melville": {
+  "targets": [
+   "herman-melville"
+  ],
+  "scores": {
+   "alexandre-dumas": 0.005753941950780312,
+   "arthur-conan-doyle": 0.014272797326912223,
+   "charles-dickens": 0.029357567407845443,
+   "charlotte-bront\u00eb": 0.04524935363959944,
+   "douglas-adams": 0.012564240503317775,
+   "edgar-allan-poe": 0.00482099777176549,
+   "emily-bront\u00eb": 0.04284343771988984,
+   "fyodor-dostoyevsky": 0.027994792082315683,
+   "graf-leo-tolstoy": 0.02152887613097643,
+   "h-g-wells": 0.05521325556210781,
+   "henry-david-thoreau": 0.01418413442873117,
+   "herman-melville": 0.007887088974180268,
+   "hermann-hesse": 0.15930519576843943,
+   "homer": 0.0,
+   "jacob-grimm": 0.023174918814162608,
+   "james-joyce": 0.01256131053133114,
+   "jane-austen": 0.005249218763783896,
+   "jerome-k-jerome": 0.040598850061700865,
+   "john-milton": 0.08621129921401263,
+   "l-m-montgomery": 0.12828084967082384,
+   "mark-twain": 0.030068385553414664,
+   "michel-de-montaigne": 0.001999244308648269,
+   "niccol\u00f2-machiavelli": 0.00713031570370294,
+   "oscar-wilde": 0.014189689965644688,
+   "p-g-wodehouse": 0.036793035449214986,
+   "plato": 0.02020876465649307,
+   "terry-pratchett": 0.04496830332680852,
+   "walt-whitman": 0.006022965125202687
+  },
+  "findings": {
+   "alexandre-dumas": {
+    "total": 62,
+    "gated": 45
+   },
+   "arthur-conan-doyle": {
+    "total": 70,
+    "gated": 49
+   },
+   "charles-dickens": {
+    "total": 57,
+    "gated": 36
+   },
+   "charlotte-bront\u00eb": {
+    "total": 70,
+    "gated": 47
+   },
+   "douglas-adams": {
+    "total": 43,
+    "gated": 29
+   },
+   "edgar-allan-poe": {
+    "total": 61,
+    "gated": 43
+   },
+   "emily-bront\u00eb": {
+    "total": 82,
+    "gated": 53
+   },
+   "fyodor-dostoyevsky": {
+    "total": 62,
+    "gated": 45
+   },
+   "graf-leo-tolstoy": {
+    "total": 60,
+    "gated": 36
+   },
+   "h-g-wells": {
+    "total": 51,
+    "gated": 33
+   },
+   "henry-david-thoreau": {
+    "total": 71,
+    "gated": 55
+   },
+   "herman-melville": {
+    "total": 60,
+    "gated": 40
+   },
+   "hermann-hesse": {
+    "total": 71,
+    "gated": 52
+   },
+   "homer": {
+    "total": 45,
+    "gated": 36
+   },
+   "jacob-grimm": {
+    "total": 70,
+    "gated": 50
+   },
+   "james-joyce": {
+    "total": 32,
+    "gated": 22
+   },
+   "jane-austen": {
+    "total": 63,
+    "gated": 47
+   },
+   "jerome-k-jerome": {
+    "total": 57,
+    "gated": 34
+   },
+   "john-milton": {
+    "total": 79,
+    "gated": 62
+   },
+   "l-m-montgomery": {
+    "total": 69,
+    "gated": 52
+   },
+   "mark-twain": {
+    "total": 26,
+    "gated": 13
+   },
+   "michel-de-montaigne": {
+    "total": 69,
+    "gated": 56
+   },
+   "niccol\u00f2-machiavelli": {
+    "total": 73,
+    "gated": 50
+   },
+   "oscar-wilde": {
+    "total": 41,
+    "gated": 33
+   },
+   "p-g-wodehouse": {
+    "total": 50,
+    "gated": 35
+   },
+   "plato": {
+    "total": 53,
+    "gated": 41
+   },
+   "terry-pratchett": {
+    "total": 54,
+    "gated": 40
+   },
+   "walt-whitman": {
+    "total": 69,
+    "gated": 52
+   }
+  },
+  "tokens": 902
+ },
+ "poe": {
+  "targets": [
+   "edgar-allan-poe"
+  ],
+  "scores": {
+   "alexandre-dumas": 0.007228933461081962,
+   "arthur-conan-doyle": 0.02061786300450966,
+   "charles-dickens": 0.049123806065111374,
+   "charlotte-bront\u00eb": 0.05012557212241062,
+   "douglas-adams": 0.01006499431181049,
+   "edgar-allan-poe": 0.004483015994818931,
+   "emily-bront\u00eb": 0.041622570500652156,
+   "fyodor-dostoyevsky": 0.030278018732297532,
+   "graf-leo-tolstoy": 0.033212482490458405,
+   "h-g-wells": 0.06830024270801391,
+   "henry-david-thoreau": 0.014216349159227497,
+   "herman-melville": 0.007903939814616226,
+   "hermann-hesse": 0.15772021323991647,
+   "homer": 0.0,
+   "jacob-grimm": 0.025884489683850483,
+   "james-joyce": 0.01078675539974129,
+   "jane-austen": 0.009180091364094638,
+   "jerome-k-jerome": 0.02764081072810416,
+   "john-milton": 0.1180941057271567,
+   "l-m-montgomery": 0.12840967396517303,
+   "mark-twain": 0.04454723935745995,
+   "michel-de-montaigne": 0.0017536938193752846,
+   "niccol\u00f2-machiavelli": 0.007767684235476588,
+   "oscar-wilde": 0.01622774004588233,
+   "p-g-wodehouse": 0.0561982714591605,
+   "plato": 0.021294431044731846,
+   "terry-pratchett": 0.04654414958469141,
+   "walt-whitman": 0.0059405232846878
+  },
+  "findings": {
+   "alexandre-dumas": {
+    "total": 55,
+    "gated": 42
+   },
+   "arthur-conan-doyle": {
+    "total": 62,
+    "gated": 49
+   },
+   "charles-dickens": {
+    "total": 56,
+    "gated": 38
+   },
+   "charlotte-bront\u00eb": {
+    "total": 69,
+    "gated": 50
+   },
+   "douglas-adams": {
+    "total": 40,
+    "gated": 31
+   },
+   "edgar-allan-poe": {
+    "total": 56,
+    "gated": 43
+   },
+   "emily-bront\u00eb": {
+    "total": 81,
+    "gated": 55
+   },
+   "fyodor-dostoyevsky": {
+    "total": 64,
+    "gated": 48
+   },
+   "graf-leo-tolstoy": {
+    "total": 55,
+    "gated": 40
+   },
+   "h-g-wells": {
+    "total": 50,
+    "gated": 35
+   },
+   "henry-david-thoreau": {
+    "total": 70,
+    "gated": 50
+   },
+   "herman-melville": {
+    "total": 62,
+    "gated": 47
+   },
+   "hermann-hesse": {
+    "total": 72,
+    "gated": 56
+   },
+   "homer": {
+    "total": 47,
+    "gated": 36
+   },
+   "jacob-grimm": {
+    "total": 67,
+    "gated": 51
+   },
+   "james-joyce": {
+    "total": 31,
+    "gated": 22
+   },
+   "jane-austen": {
+    "total": 61,
+    "gated": 44
+   },
+   "jerome-k-jerome": {
+    "total": 55,
+    "gated": 39
+   },
+   "john-milton": {
+    "total": 81,
+    "gated": 63
+   },
+   "l-m-montgomery": {
+    "total": 72,
+    "gated": 51
+   },
+   "mark-twain": {
+    "total": 24,
+    "gated": 17
+   },
+   "michel-de-montaigne": {
+    "total": 67,
+    "gated": 56
+   },
+   "niccol\u00f2-machiavelli": {
+    "total": 74,
+    "gated": 49
+   },
+   "oscar-wilde": {
+    "total": 46,
+    "gated": 32
+   },
+   "p-g-wodehouse": {
+    "total": 49,
+    "gated": 37
+   },
+   "plato": {
+    "total": 55,
+    "gated": 42
+   },
+   "terry-pratchett": {
+    "total": 54,
+    "gated": 47
+   },
+   "walt-whitman": {
+    "total": 66,
+    "gated": 47
+   }
+  },
+  "tokens": 918
+ },
+ "pratchett": {
+  "targets": [
+   "terry-pratchett"
+  ],
+  "scores": {
+   "alexandre-dumas": 0.006746394314922792,
+   "arthur-conan-doyle": 0.019258974612822482,
+   "charles-dickens": 0.02665971880858644,
+   "charlotte-bront\u00eb": 0.03557202947929497,
+   "douglas-adams": 0.010321955012780767,
+   "edgar-allan-poe": 0.004845150393517516,
+   "emily-bront\u00eb": 0.03127086252399365,
+   "fyodor-dostoyevsky": 0.02725372645804476,
+   "graf-leo-tolstoy": 0.029036476417768773,
+   "h-g-wells": 0.054228791524454104,
+   "henry-david-thoreau": 0.013854197544400232,
+   "herman-melville": 0.0075862530791987026,
+   "hermann-hesse": 0.1596941611460184,
+   "homer": 0.0,
+   "jacob-grimm": 0.03253461558519542,
+   "james-joyce": 0.012930908924156924,
+   "jane-austen": 0.004965482846303283,
+   "jerome-k-jerome": 0.0393909067735422,
+   "john-milton": 0.06499999999999995,
+   "l-m-montgomery": 0.16146398562000172,
+   "mark-twain": 0.026835846712743756,
+   "michel-de-montaigne": 0.0013088132038883097,
+   "niccol\u00f2-machiavelli": 0.007903388259304825,
+   "oscar-wilde": 0.013513568657873403,
+   "p-g-wodehouse": 0.06532345193309505,
+   "plato": 0.019829602617201444,
+   "terry-pratchett": 0.07097252016744465,
+   "walt-whitman": 0.006085761941757955
+  },
+  "findings": {
+   "alexandre-dumas": {
+    "total": 57,
+    "gated": 39
+   },
+   "arthur-conan-doyle": {
+    "total": 57,
+    "gated": 40
+   },
+   "charles-dickens": {
+    "total": 58,
+    "gated": 36
+   },
+   "charlotte-bront\u00eb": {
+    "total": 72,
+    "gated": 51
+   },
+   "douglas-adams": {
+    "total": 39,
+    "gated": 28
+   },
+   "edgar-allan-poe": {
+    "total": 58,
+    "gated": 43
+   },
+   "emily-bront\u00eb": {
+    "total": 80,
+    "gated": 56
+   },
+   "fyodor-dostoyevsky": {
+    "total": 60,
+    "gated": 46
+   },
+   "graf-leo-tolstoy": {
+    "total": 53,
+    "gated": 33
+   },
+   "h-g-wells": {
+    "total": 51,
+    "gated": 34
+   },
+   "henry-david-thoreau": {
+    "total": 69,
+    "gated": 55
+   },
+   "herman-melville": {
+    "total": 65,
+    "gated": 41
+   },
+   "hermann-hesse": {
+    "total": 67,
+    "gated": 53
+   },
+   "homer": {
+    "total": 55,
+    "gated": 39
+   },
+   "jacob-grimm": {
+    "total": 70,
+    "gated": 48
+   },
+   "james-joyce": {
+    "total": 28,
+    "gated": 19
+   },
+   "jane-austen": {
+    "total": 62,
+    "gated": 42
+   },
+   "jerome-k-jerome": {
+    "total": 55,
+    "gated": 38
+   },
+   "john-milton": {
+    "total": 81,
+    "gated": 63
+   },
+   "l-m-montgomery": {
+    "total": 67,
+    "gated": 47
+   },
+   "mark-twain": {
+    "total": 26,
+    "gated": 12
+   },
+   "michel-de-montaigne": {
+    "total": 72,
+    "gated": 58
+   },
+   "niccol\u00f2-machiavelli": {
+    "total": 69,
+    "gated": 50
+   },
+   "oscar-wilde": {
+    "total": 38,
+    "gated": 29
+   },
+   "p-g-wodehouse": {
+    "total": 46,
+    "gated": 32
+   },
+   "plato": {
+    "total": 57,
+    "gated": 43
+   },
+   "terry-pratchett": {
+    "total": 47,
+    "gated": 37
+   },
+   "walt-whitman": {
+    "total": 67,
+    "gated": 47
+   }
+  },
+  "tokens": 890
+ }
+}

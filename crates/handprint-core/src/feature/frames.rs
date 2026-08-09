@@ -31,7 +31,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::{
+use super::{ burstiness_of,
     per_1k, ratio, DimInfo, Family, Feature, FitContext, FittedFeature, PackLicense, Unit,
 };
 use crate::error::Result;
@@ -121,6 +121,8 @@ pub struct FittedFrames {
     ironic: Symbol,
     frozen_share: Symbol,
     vehicle_len: Symbol,
+    para_share: Symbol,
+    burstiness: Symbol,
     /// Lowercased literal frozen similes. Empty when no pack was supplied.
     frozen: Vec<String>,
     frozen_pack: Option<(String, String, bool)>,
@@ -155,6 +157,11 @@ impl Feature for ComparisonFrames {
         let ironic = push(interner, "frame:ironic_hedge_rate", Unit::PerThousandTokens);
         let frozen_share = push(interner, "frame:frozen_share", Unit::Fraction);
         let vehicle_len = push(interner, "frame:vehicle_len_mean", Unit::Tokens);
+        // Where the figures fall, not just how many. A rate cannot tell a
+        // simile in every paragraph from the same count clustered into three,
+        // and blind readers of pastiche name that difference first.
+        let para_share = push(interner, "frame:figure_para_share", Unit::Fraction);
+        let burstiness = push(interner, "frame:figure_burstiness", Unit::Index);
 
         let mut frozen: Vec<String> = Vec::new();
         if let Some(pack) = &self.frozen_pack {
@@ -177,6 +184,8 @@ impl Feature for ComparisonFrames {
             .map(|p| (p.qualified_name(), p.license.clone(), p.redistributable));
 
         Ok(FittedFrames {
+            para_share,
+            burstiness,
             dims,
             simile,
             negated,
@@ -186,6 +195,72 @@ impl Feature for ComparisonFrames {
             frozen,
             frozen_pack,
         })
+    }
+}
+
+impl FittedFrames {
+    /// The spacing of comparison frames across the document.
+    ///
+    /// `frame:simile_rate` says how many similes a thousand tokens carries.
+    /// It cannot say whether they arrive one per paragraph like a metronome or
+    /// three in a burst and then nothing for a page, and that distinction is
+    /// what separates a writer from an imitation of one: four independent
+    /// blind judges reading generated pastiche each reported, unprompted, that
+    /// "nearly every beat gets a simile or aphorism, where the author would
+    /// let some plain sentences breathe". Every one of those drafts sat inside
+    /// the rate band.
+    fn spacing(&self, analysis: &Analysis<'_>, frames: &[Frame], out: &mut VectorBuilder) {
+        const FLOOR: usize = 4;
+        if frames.len() < FLOOR {
+            out.mark_missing(self.para_share);
+            out.mark_missing(self.burstiness);
+            return;
+        }
+
+        let paragraphs: Vec<Span> = analysis
+            .structure()
+            .blocks
+            .iter()
+            .filter(|b| matches!(b.kind, crate::text::segment::BlockKind::Paragraph))
+            .map(|b| b.span)
+            .collect();
+        if paragraphs.is_empty() {
+            out.mark_missing(self.para_share);
+        } else {
+            let carrying = paragraphs
+                .iter()
+                .filter(|p| {
+                    frames
+                        .iter()
+                        .any(|f| f.span.start >= p.start && f.span.start < p.end)
+                })
+                .count();
+            out.set(self.para_share, ratio(carrying, paragraphs.len()));
+        }
+
+        // Gaps in paragraphs rather than tokens: the judges' complaint is about
+        // the page, and a token gap is dominated by paragraph length.
+        if paragraphs.len() < 3 {
+            out.mark_missing(self.burstiness);
+            return;
+        }
+        let mut occupied: Vec<usize> = Vec::new();
+        for (i, p) in paragraphs.iter().enumerate() {
+            if frames
+                .iter()
+                .any(|f| f.span.start >= p.start && f.span.start < p.end)
+            {
+                occupied.push(i);
+            }
+        }
+        let gaps: Vec<f64> = occupied
+            .windows(2)
+            .map(|w| (w[1] - w[0]) as f64)
+            .collect();
+        match burstiness_of(&gaps) {
+            Some(b) => out.set(self.burstiness, b),
+            None => out.mark_missing(self.burstiness),
+        }
     }
 }
 
@@ -208,6 +283,7 @@ impl FittedFeature for FittedFrames {
             })
             .collect()
     }
+
 
     fn transform(&self, analysis: &Analysis<'_>, out: &mut VectorBuilder) {
         let tokens = analysis.lexical_len();
@@ -239,6 +315,8 @@ impl FittedFeature for FittedFrames {
                 out.note_span(self.frozen_share, frame.span);
             }
         }
+
+        self.spacing(analysis, &frames, out);
 
         out.set(self.simile, per_1k(frames.len(), tokens));
         out.set(self.negated, per_1k(negated, tokens));
@@ -594,4 +672,40 @@ mod tests {
             with
         );
     }
+
+    #[test]
+    fn figure_spacing_separates_a_metronome_from_a_burst() {
+        // Same six similes, same length. One draft puts one in every
+        // paragraph; the other clusters them and then writes plainly. The rate
+        // dimension scores these identically, which is the whole problem.
+        let simile = "The room was as quiet as a church. ";
+        let plain = "He opened the door and walked down the corridor to the desk. ";
+        let mut metronome = String::new();
+        for _ in 0..6 {
+            metronome.push_str(simile);
+            metronome.push_str(plain);
+            metronome.push_str("\n\n");
+        }
+        let mut burst = String::new();
+        for _ in 0..3 {
+            burst.push_str(simile);
+        }
+        burst.push_str("\n\n");
+        for _ in 0..3 {
+            burst.push_str(simile);
+        }
+        burst.push_str("\n\n");
+        for _ in 0..4 {
+            burst.push_str(plain);
+            burst.push_str("\n\n");
+        }
+        let share = |text: &str| {
+            let (v, i) = transform(ComparisonFrames::default(), text);
+            v.get(i.get("frame:figure_para_share").unwrap())
+        };
+        let (m, b) = (share(&metronome), share(&burst));
+        assert!(m > b, "one simile per paragraph must score higher: {m} vs {b}");
+        assert!((m - 1.0).abs() < 1e-9, "every paragraph carries one: {m}");
+    }
+
 }

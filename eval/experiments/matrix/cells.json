@@ -1,0 +1,8 @@
+[
+{"id":"C03","src":"dostoyevsky","dst":"adams","source_author":"fyodor-dostoyevsky","target_author":"douglas-adams","axis":"P W","shift":"existential interior -> absurdist cosmic"},
+{"id":"C04","src":"melville","dst":"jerome","source_author":"herman-melville","target_author":"jerome-k-jerome","axis":"R W","shift":"high rhetoric -> whimsical digression"},
+{"id":"C05","src":"doyle","dst":"pratchett","source_author":"arthur-conan-doyle","target_author":"terry-pratchett","axis":"W","shift":"deductive procedural -> comic fantasy"},
+{"id":"C11","src":"wodehouse","dst":"poe","source_author":"p-g-wodehouse","target_author":"edgar-allan-poe","axis":"R W","shift":"farce -> gothic"},
+{"id":"C15","src":"jerome","dst":"doyle","source_author":"jerome-k-jerome","target_author":"arthur-conan-doyle","axis":"W","shift":"whimsy -> procedural"},
+{"id":"C16","src":"wodehouse","dst":"twain","source_author":"p-g-wodehouse","target_author":"mark-twain","axis":"W E","shift":"English drawing-room -> American vernacular"}
+]

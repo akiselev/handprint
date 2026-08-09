@@ -1,0 +1,42 @@
+[
+  {
+    "cell": "C03",
+    "target": "Douglas Adams",
+    "draft_shown": "B",
+    "judge_picked": "B",
+    "draft_won": true,
+    "margin": "moderate",
+    "overwritten": true,
+    "worst_tic": "with the air of a man producing a rabbit -- stock stage-simile"
+  },
+  {
+    "cell": "C04",
+    "target": "Jerome K. Jerome",
+    "draft_shown": "B",
+    "judge_picked": "B",
+    "draft_won": true,
+    "margin": "large",
+    "overwritten": true,
+    "worst_tic": "'I am not good at years.' -- clipped modern one-liner, not Jerome's unspooling self-deprecation"
+  },
+  {
+    "cell": "C05",
+    "target": "Terry Pratchett",
+    "draft_shown": "A",
+    "judge_picked": "A",
+    "draft_won": true,
+    "margin": "large",
+    "overwritten": true,
+    "worst_tic": "two similes stacked on the same beat (lid-on-a-pot then pass-the-salt)"
+  },
+  {
+    "cell": "C15",
+    "target": "Arthur Conan Doyle",
+    "draft_shown": "A",
+    "judge_picked": "A",
+    "draft_won": true,
+    "margin": "moderate",
+    "overwritten": false,
+    "worst_tic": "inherited Jerome punchline left intact: 'never known a dull moment in a boat while girls were towing it'"
+  }
+]

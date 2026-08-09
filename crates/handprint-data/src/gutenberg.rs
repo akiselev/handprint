@@ -111,6 +111,10 @@ pub struct Book {
     /// not a Gutenberg text or used a variant nothing here recognizes, and the
     /// caller should look before trusting it.
     pub stripped: bool,
+    /// Editorial prose removed from inside the markers. Reported rather than
+    /// silently dropped: every entry is a judgement call about who wrote
+    /// something, and those are the ones worth showing a human.
+    pub removed: Vec<Removal>,
 }
 
 /// One chapter.
@@ -145,6 +149,269 @@ pub fn strip_pg_boilerplate(text: &str) -> (&str, bool) {
         return (body, true);
     }
     (text, false)
+}
+
+/// Openers of an editorial note written by whoever prepared the etext.
+///
+/// Lower-cased before matching, because the archive uses every casing.
+const NOTE_OPENERS: &[&str] = &[
+    "transcriber's note",
+    "transcriber’s note",
+    "transcribers note",
+    "original transcriber's note",
+    "original transcriber’s note",
+    "editor's note for this etext",
+    "note to this etext",
+];
+
+/// A legacy footer line that sits *inside* a body sliced by the modern markers.
+///
+/// `strip_pg_boilerplate` takes the earliest modern end marker, which is the
+/// right rule, but the older sign-off line precedes it in files that carry
+/// both. Left in, it teaches the reference a sentence naming the author.
+const INNER_FOOTERS: &[&str] = &[
+    "End of Project Gutenberg",
+    "End of the Project Gutenberg",
+    "End of The Project Gutenberg",
+];
+
+/// What was removed from one body, for the caller to report.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Removal {
+    /// Which rule fired.
+    pub rule: &'static str,
+    /// Words removed.
+    pub words: usize,
+    /// First 80 characters of the removed span, so a human can check it.
+    pub excerpt: String,
+}
+
+/// Remove the etext preparer's own prose from a stripped body.
+///
+/// The licence block is not the only thing in a Gutenberg file that nobody in
+/// the corpus wrote. Four texts in this collection carry a transcriber's note,
+/// two carry the older sign-off line inside the modern markers, and all of them
+/// survive [`strip_pg_boilerplate`] because they sit between the markers rather
+/// than outside them. The Pudd'nhead Wilson note is seventeen hundred words of
+/// twenty-first-century historical essay filed under Mark Twain.
+///
+/// Three rules, each bounded, because an unbounded "delete until it looks like
+/// prose again" rule is how a chapter goes missing:
+///
+/// 1. **Bracketed inline notes** — `[Transcriber's Note: ...]` is removed
+///    exactly, span for span. Nothing is guessed.
+/// 2. **A note in the last 15% of the body** — truncate to the end. A note that
+///    late has no chapters after it. This is the Twain case, and the position
+///    test is what keeps it away from the Dickinson case, where an identical
+///    heading sits near the front with the entire book still to come.
+/// 3. **A note anywhere else** — remove the heading and the one paragraph after
+///    it, capped at 300 words, and report it. One paragraph is the observed
+///    shape; the cap and the report are there because "observed shape" is not
+///    a guarantee.
+///
+/// Returns the cleaned body and one [`Removal`] per rule that fired.
+pub fn strip_editorial(body: &str) -> (String, Vec<Removal>) {
+    let mut removals = Vec::new();
+    // CRLF first, and before anything looks for a paragraph break. Half the
+    // archive uses DOS line endings, `"\r\n\r\n"` does not contain `"\n\n"`,
+    // and a blank-line search that silently never matches makes every note
+    // look like it runs to the end of the book — which is exactly long enough
+    // to trip the 300-word guard and leave the note in place. The failure is
+    // invisible: the rule reports nothing, so it looks like nothing was there.
+    let mut text = body.replace("\r\n", "\n");
+
+    // Rule 1, first: a bracketed note can otherwise be re-matched by rule 3
+    // and lose the paragraph that follows it, which is real prose.
+    loop {
+        let Some(open) = find_bracketed_note(&text) else {
+            break;
+        };
+        let Some(close) = text[open..].find(']').map(|i| open + i + 1) else {
+            break;
+        };
+        // A bracket that stays open for pages is not a note, it is prose that
+        // happens to mention one.
+        if text[open..close].split_whitespace().count() > 300 {
+            break;
+        }
+        removals.push(removal("bracketed-note", &text[open..close]));
+        text.replace_range(open..close, "");
+    }
+
+    // Rule 2 before rule 3: a trailing note should be truncated whole, not
+    // trimmed to its first paragraph and left in.
+    if let Some(at) = find_note_heading(&text) {
+        if at as f64 > text.len() as f64 * 0.85 {
+            removals.push(removal("trailing-note", &text[at..]));
+            text.truncate(at);
+        }
+    }
+
+    while let Some(at) = find_note_heading(&text) {
+        let end = paragraph_end(&text, at);
+        if text[at..end].split_whitespace().count() > 300 {
+            break;
+        }
+        removals.push(removal("inline-note", &text[at..end]));
+        text.replace_range(at..end, "");
+    }
+
+    for footer in INNER_FOOTERS {
+        if let Some(at) = text.find(footer) {
+            removals.push(removal("inner-footer", &text[at..]));
+            text.truncate(at);
+        }
+    }
+
+    text = strip_apparatus(&text, &mut removals);
+    text = strip_plate_lists(&text, &mut removals);
+
+    (text.trim().to_owned(), removals)
+}
+
+/// Phrases no novelist writes, safe to match inside a bounded paragraph.
+const APPARATUS: &[&str] = &[
+    "this etext",
+    "project gutenberg",
+    "illustrations taken from an",
+    "etext was prepared",
+];
+
+/// Phrases that *are* written in prose, and so need a much shorter paragraph.
+///
+/// Poe's essay on Maelzel's chess automaton contains "His Essay was first
+/// published in a Baltimore weekly paper". Twain's Gutenberg file contains
+/// "First published in 1880" as a four-word paragraph of its own. Only the
+/// length separates them.
+const APPARATUS_SHORT: &[&str] = &["first published in 1", "illustrations taken from"];
+
+/// Remove whole paragraphs that are the etext's apparatus rather than the book.
+///
+/// Paradise Lost opens with a page about a 486 running DOS; A Tramp Abroad
+/// restarts three times with a publication slug. Both survive the marker strip
+/// because they sit inside the markers, and both are filed under the author.
+fn strip_apparatus(text: &str, removals: &mut Vec<Removal>) -> String {
+    let mut kept: Vec<&str> = Vec::new();
+    for paragraph in text.split("\n\n") {
+        let words = paragraph.split_whitespace().count();
+        let lowered = paragraph.to_lowercase();
+        let long_hit = words <= 300 && APPARATUS.iter().any(|m| lowered.contains(m));
+        let short_hit = words <= 25 && APPARATUS_SHORT.iter().any(|m| lowered.contains(m));
+        if (long_hit || short_hit) && words > 0 {
+            removals.push(removal("apparatus", paragraph));
+            continue;
+        }
+        kept.push(paragraph);
+    }
+    kept.join("\n\n")
+}
+
+/// Remove a run of numbered plate captions, e.g. `41.  AN OBJECT OF ADMIRATION`.
+///
+/// One such line is a list item in a book that has lists. Five in a row, set in
+/// capitals, is the front-of-volume illustration index, repeated once per part.
+///
+/// The capitals requirement is not decoration. Without it this rule deletes
+/// Watson's list of Sherlock Holmes's limits — "1. Knowledge of Literature.—Nil.
+/// 2. Philosophy.—Nil. 3. Astronomy.—Nil." — which is a numbered run of short
+/// items and is also one of the most characteristic passages Doyle ever wrote.
+/// Plate captions are typeset in caps; a novelist's list is written in
+/// sentence case, and that is the whole of the difference.
+fn strip_plate_lists(text: &str, removals: &mut Vec<Removal>) -> String {
+    const RUN: usize = 5;
+    let lines: Vec<&str> = text.lines().collect();
+    let mut kept: Vec<&str> = Vec::new();
+    let mut i = 0;
+    while i < lines.len() {
+        let mut j = i;
+        while j < lines.len() && is_plate_caption(lines[j]) {
+            j += 1;
+        }
+        if j - i >= RUN {
+            removals.push(removal("plate-list", &lines[i..j].join("\n")));
+            i = j;
+            continue;
+        }
+        kept.push(lines[i]);
+        i += 1;
+    }
+    kept.join("\n")
+}
+
+fn is_plate_caption(line: &str) -> bool {
+    let trimmed = line.trim();
+    let Some((number, rest)) = trimmed.split_once('.') else {
+        return false;
+    };
+    let rest = rest.trim();
+    if number.is_empty()
+        || number.len() > 4
+        || !number.chars().all(|c| c.is_ascii_digit())
+        || rest.is_empty()
+        || rest.split_whitespace().count() > 12
+    {
+        return false;
+    }
+    let letters = rest.chars().filter(|c| c.is_alphabetic()).count();
+    let upper = rest.chars().filter(|c| c.is_uppercase()).count();
+    letters > 0 && upper * 10 >= letters * 8
+}
+
+fn removal(rule: &'static str, span: &str) -> Removal {
+    Removal {
+        rule,
+        words: span.split_whitespace().count(),
+        excerpt: span.split_whitespace().take(14).collect::<Vec<_>>().join(" "),
+    }
+}
+
+/// Byte offset of a `[` that opens a bracketed transcriber's note.
+fn find_bracketed_note(text: &str) -> Option<usize> {
+    text.match_indices('[')
+        .find(|(i, _)| {
+            let tail = &text[*i + 1..];
+            let head = tail.get(..40).unwrap_or(tail).to_lowercase();
+            NOTE_OPENERS.iter().any(|opener| head.starts_with(opener))
+        })
+        .map(|(i, _)| i)
+}
+
+/// Byte offset of a line that is nothing but a transcriber's-note heading.
+///
+/// Line-anchored on purpose: a novel is free to contain the words "the
+/// transcriber's note lay on the table", and that sentence is the author's.
+fn find_note_heading(text: &str) -> Option<usize> {
+    let mut offset = 0;
+    for line in text.split_inclusive('\n') {
+        let trimmed = line.trim();
+        let lowered = trimmed.trim_end_matches([':', '.']).to_lowercase();
+        if NOTE_OPENERS.contains(&lowered.as_str())
+            || NOTE_OPENERS
+                .iter()
+                .any(|o| lowered.starts_with(o) && trimmed.split_whitespace().count() <= 6)
+        {
+            return Some(offset);
+        }
+        offset += line.len();
+    }
+    None
+}
+
+/// End of the paragraph block that starts at `from`: the next blank line after
+/// the heading's own line, or the end of the text.
+fn paragraph_end(text: &str, from: usize) -> usize {
+    let rest = &text[from..];
+    let after_heading = rest.find('\n').map_or(rest.len(), |i| i + 1);
+    let body = &rest[after_heading..];
+    // Skip the blank line separating heading from note, then run to the next.
+    let start = body
+        .char_indices()
+        .find(|(_, c)| !c.is_whitespace())
+        .map_or(body.len(), |(i, _)| i);
+    match body[start..].find("\n\n") {
+        Some(i) => from + after_heading + start + i,
+        None => text.len(),
+    }
 }
 
 /// Slice from after the *last* start marker to the *first* end marker.
@@ -332,12 +599,14 @@ pub fn prepare(path: &Path, author: &str, config: &GutenbergConfig) -> Result<Bo
         source,
     })?;
     let (body, stripped) = strip_pg_boilerplate(&raw);
-    let chapters = merge_short(chapterize(body), config.min_words);
+    let (body, removed) = strip_editorial(body);
+    let chapters = merge_short(chapterize(&body), config.min_words);
     Ok(Book {
         author: author.to_owned(),
         slug: slug(path),
         chapters,
         stripped,
+        removed,
     })
 }
 
@@ -496,6 +765,152 @@ mod tests {
     }
 
     #[test]
+    fn a_trailing_transcribers_note_is_truncated_whole() {
+        // The Pudd'nhead Wilson shape: the story ends, and seventeen hundred
+        // words of modern historical essay follow under the author's name.
+        let body = format!(
+            "{}\n\nTranscriber's Notes\n\nWelcome to Project Gutenberg's \
+             presentation of this book. Homer Plessy was arrested in 1892.\n",
+            "He pardoned Tom at once, and the creditors sold him. ".repeat(40)
+        );
+        let (out, removed) = strip_editorial(&body);
+        assert!(!out.contains("Transcriber"), "{out:?}");
+        assert!(out.contains("pardoned Tom"));
+        assert_eq!(removed.len(), 1);
+        assert_eq!(removed[0].rule, "trailing-note");
+    }
+
+    #[test]
+    fn a_note_near_the_front_loses_its_paragraph_and_not_the_book() {
+        // The Moby-Dick shape, and the reason the trailing rule is
+        // position-gated: an identical heading sits near the front of the
+        // Dickinson file with the whole book still to come.
+        let body = "Original Transcriber's Notes:\n\n\
+                    This text is a combination of etexts from two archives.\n\n\
+                    ETYMOLOGY.\n\n\
+                    The pale Usher—threadbare in coat, heart, body, and brain.\n";
+        let (out, removed) = strip_editorial(body);
+        assert!(!out.contains("combination of etexts"), "{out:?}");
+        assert!(out.contains("pale Usher"), "the book survives: {out:?}");
+        assert_eq!(removed.len(), 1);
+        assert_eq!(removed[0].rule, "inline-note");
+    }
+
+    #[test]
+    fn a_note_in_a_dos_file_is_found_too() {
+        // Moby-Dick is CRLF. Before the normalisation this test guards, the
+        // paragraph scan found no blank line, treated the note as running to
+        // the end of the book, tripped the length guard and reported nothing.
+        let body = "Original Transcriber's Notes:\r\n\r\n\
+                    This text is a combination of etexts from two archives.\r\n\r\n\
+                    ETYMOLOGY.\r\n\r\n\
+                    The pale Usher, threadbare in coat, heart, body, and brain.\r\n";
+        let (out, removed) = strip_editorial(body);
+        assert_eq!(removed.len(), 1, "{removed:?}");
+        assert!(removed[0].words < 20, "the note, not the book: {removed:?}");
+        assert!(out.contains("pale Usher"), "{out:?}");
+    }
+
+    #[test]
+    fn a_bracketed_note_is_removed_span_for_span() {
+        let body = "He looked at the leaky roof. [Transcriber's Note for edition 11: \
+                    the word \"leafy\" has been changed to \"leaky\".--jt] Then he left.\n";
+        let (out, removed) = strip_editorial(body);
+        assert!(out.contains("leaky roof"));
+        assert!(out.contains("Then he left"));
+        assert!(!out.contains("edition 11"), "{out:?}");
+        assert_eq!(removed[0].rule, "bracketed-note");
+    }
+
+    #[test]
+    fn the_older_sign_off_inside_the_modern_markers_is_cut() {
+        let body = "'Can you beat it?' said Henry, silently, to himself.\n\n\
+                    End of Project Gutenberg's The Man with Two Left Feet, by P. G. Wodehouse\n";
+        let (out, removed) = strip_editorial(body);
+        assert!(out.ends_with("to himself."), "{out:?}");
+        assert_eq!(removed[0].rule, "inner-footer");
+    }
+
+    #[test]
+    fn the_etexts_own_provenance_page_is_not_the_author() {
+        let body = "Introduction (one page)\n\n\
+                    This etext was originally created in 1964-1965 according to \
+                    Dr. Joseph Raben of Queens College, NY.\n\n\
+                    Of Man's first disobedience, and the fruit of that forbidden tree.\n";
+        let (out, removed) = strip_editorial(body);
+        assert!(!out.contains("Queens College"), "{out:?}");
+        assert!(out.contains("first disobedience"));
+        assert_eq!(removed[0].rule, "apparatus");
+    }
+
+    #[test]
+    fn a_publication_slug_goes_but_a_sentence_about_publishing_stays() {
+        // Twain's file restarts each part with a four-word slug. Poe's essay
+        // says the same words inside a paragraph of argument. Length is the
+        // only thing that separates them, so the rule is length-gated.
+        let slug = "First published in 1880\n\nHe went down the road.\n";
+        let (out, removed) = strip_editorial(slug);
+        assert!(!out.contains("1880"), "{out:?}");
+        assert_eq!(removed.len(), 1);
+
+        let prose = "His Essay was first published in 1836 in a Baltimore weekly \
+                     paper, was illustrated by cuts, and was entitled \"An attempt \
+                     to analyse the Automaton Chess Player\", a title we cannot \
+                     consider altogether the true one, although the solution is \
+                     ingenious and deserves a hearing on its own terms.\n";
+        let (out, removed) = strip_editorial(prose);
+        assert!(out.contains("Baltimore"), "{out:?}");
+        assert!(removed.is_empty(), "{removed:?}");
+    }
+
+    #[test]
+    fn a_run_of_plate_captions_goes_and_a_lone_numbered_line_stays() {
+        let index = "ILLUSTRATIONS:\n\
+                     1.   PORTRAIT OF THE AUTHOR\n\
+                     2.   TITIAN'S MOSES\n\
+                     3.   THE AUTHOR'S MEMORIES\n\
+                     4.   FRENCH CALM\n\
+                     5.   THE CHALLENGE ACCEPTED\n\
+                     \n\
+                     It was a bright cold day in April.\n";
+        let (out, removed) = strip_editorial(index);
+        assert!(!out.contains("TITIAN"), "{out:?}");
+        assert!(out.contains("bright cold day"));
+        assert_eq!(removed[0].rule, "plate-list");
+
+        let prose = "3. He had three rules, and the third was the one that mattered.\n\n\
+                     He never wrote it down.\n";
+        let (out, removed) = strip_editorial(prose);
+        assert!(out.contains("three rules"), "{out:?}");
+        assert!(removed.is_empty());
+    }
+
+    #[test]
+    fn watsons_list_of_holmess_limits_is_not_a_plate_index() {
+        // Sentence case, not capitals: a numbered run a novelist wrote.
+        let body = "His limits were as follows:\n\
+                    1. Knowledge of Literature.—Nil.\n\
+                    2. Philosophy.—Nil.\n\
+                    3. Astronomy.—Nil.\n\
+                    4. Politics.—Feeble.\n\
+                    5. Botany.—Variable.\n\
+                    6. Geology.—Practical, but limited.\n";
+        let (out, removed) = strip_editorial(body);
+        assert!(out.contains("Botany"), "{out:?}");
+        assert!(removed.is_empty(), "{removed:?}");
+    }
+
+    #[test]
+    fn prose_that_merely_mentions_a_transcriber_is_left_alone() {
+        // Line-anchored matching: the heading rule must not fire on a sentence.
+        let body = "The transcriber's note lay on the table where he had left it, \
+                    and nobody read it for a week.\n";
+        let (out, removed) = strip_editorial(body);
+        assert_eq!(out, body.trim());
+        assert!(removed.is_empty());
+    }
+
+    #[test]
     fn an_unrecognized_file_is_returned_whole_and_flagged() {
         // Guessing where the licence ends would corrupt the corpus in a way
         // that looks exactly like an author with an unusual opening chapter.
@@ -597,6 +1012,7 @@ mod tests {
             slug: "jumping-frog".into(),
             chapters: chapterize("CHAPTER I\n\nSome prose here.\n"),
             stripped: true,
+            removed: Vec::new(),
         };
         let records = to_records(&book);
         assert_eq!(records.len(), 1);

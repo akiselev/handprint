@@ -1,0 +1,18 @@
+[
+  {
+    "cell": "C04",
+    "target": "Jerome K. Jerome",
+    "picked": "sparse",
+    "margin": "slight",
+    "overwritten_dense": true,
+    "overwritten_sparse": false
+  },
+  {
+    "cell": "C05",
+    "target": "Terry Pratchett",
+    "picked": "sparse",
+    "margin": "slight",
+    "overwritten_dense": true,
+    "overwritten_sparse": false
+  }
+]

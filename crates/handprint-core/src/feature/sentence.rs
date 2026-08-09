@@ -727,11 +727,15 @@ fn aside_spans(analysis: &Analysis<'_>) -> Vec<Span> {
 
 /// Byte spans of markdown links and bare URLs.
 fn link_spans(source: &str) -> Vec<Span> {
-    let bytes = source.as_bytes();
     let mut out = Vec::new();
     let mut i = 0usize;
-    while i < bytes.len() {
-        if bytes[i] == b'[' {
+    // The cursor advances by whole characters. Stepping a byte at a time and
+    // then slicing `source[i..]` panics on the first multi-byte character, and
+    // prose from a real book is full of them: a curly quote, an em dash, a
+    // bullet. Every offset pushed below still lands on a boundary, because
+    // `find` returns one and `[`, `]`, `(`, `)` are one byte each.
+    while let Some(ch) = source[i..].chars().next() {
+        if ch == '[' {
             // `[text](target)`, with no nesting inside the label.
             if let Some(close) = source[i..].find("](") {
                 let label_end = i + close;
@@ -753,7 +757,7 @@ fn link_spans(source: &str) -> Vec<Span> {
             i = end;
             continue;
         }
-        i += 1;
+        i += ch.len_utf8();
     }
     out
 }
@@ -1032,6 +1036,21 @@ mod tests {
         let spans = v.spans(i.get("md:link_rate").unwrap());
         assert_eq!(spans.len(), 1);
         assert_eq!(&text[spans[0].range()], "[the docs](https://example.com/a)");
+    }
+
+    #[test]
+    fn link_spans_survive_multi_byte_characters() {
+        // The cursor used to step one byte at a time and slice at the new
+        // offset, which panics as soon as it lands inside a curly quote. Every
+        // book in the corpus opens with one, so this fired on real prose and
+        // on nothing in the ASCII fixtures.
+        let text = "“Don’t,” he said — a bullet • and an em dash — then \
+                    [a link](https://example.com/x) and https://example.com/y.";
+        let (v, i) = transform_with(SentenceStats::default().with_md_extended(), text);
+        let spans = v.spans(i.get("md:link_rate").unwrap());
+        assert_eq!(spans.len(), 2);
+        assert_eq!(&text[spans[0].range()], "[a link](https://example.com/x)");
+        assert_eq!(&text[spans[1].range()], "https://example.com/y.");
     }
 
     #[test]

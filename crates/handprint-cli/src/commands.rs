@@ -1156,6 +1156,7 @@ fn gutenberg(command: Command) -> Result<i32> {
     let mut books = 0usize;
     let mut chapters = 0usize;
     let mut unstripped: Vec<String> = Vec::new();
+    let mut editorial: Vec<String> = Vec::new();
     let mut records: Vec<handprint_data::Record> = Vec::new();
 
     let mut authors: Vec<PathBuf> = std::fs::read_dir(&input)
@@ -1191,6 +1192,15 @@ fn gutenberg(command: Command) -> Result<i32> {
                 // Project Gutenberg's licence text and reports it as voice.
                 unstripped.push(format!("{}", file.display()));
             }
+            for removal in &book.removed {
+                editorial.push(format!(
+                    "{} [{}] {} words: {}…",
+                    file.display(),
+                    removal.rule,
+                    removal.words,
+                    removal.excerpt
+                ));
+            }
             handprint_data::gutenberg::write_chapters(&book, &out)?;
             records.extend(handprint_data::gutenberg::to_records(&book));
             chapters += book.chapters.len();
@@ -1214,6 +1224,18 @@ fn gutenberg(command: Command) -> Result<i32> {
         );
         for path in unstripped.iter().take(10) {
             eprintln!("  {path}");
+        }
+    }
+    if !editorial.is_empty() {
+        // Not a warning. Every line here is prose the corpus is better without,
+        // but each one is also a judgement about authorship, so it is printed
+        // for a human rather than buried.
+        eprintln!(
+            "removed {} block(s) of etext-preparer prose from inside the markers:",
+            editorial.len()
+        );
+        for line in &editorial {
+            eprintln!("  {line}");
         }
     }
     println!(

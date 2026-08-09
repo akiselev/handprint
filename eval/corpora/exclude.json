@@ -1,0 +1,57 @@
+{
+  "_README": [
+    "Sections that are NOT written by the author whose directory they land in.",
+    "Keyed by EPUB file stem; each entry is matched against the spine file path",
+    "or the first 100 characters of the section's text.",
+    "",
+    "These cannot be found heuristically: nothing in the markup distinguishes an",
+    "introduction written by Stephen Fry from one written by Douglas Adams. They",
+    "are listed because someone checked who wrote them. Anything left in here is",
+    "prose the reference will attribute to the wrong person, in exactly the",
+    "sections most likely to be stylistically distinctive.",
+    "",
+    "Deliberately NOT excluded: Pratchett's footnotes, author's notes, Feegle",
+    "glossaries, prologues and epilogues, and Adams's 'A GUIDE TO THE GUIDE'.",
+    "Those are the author writing, and several of them are the most",
+    "characteristic prose in the book.",
+    "",
+    "epub2md.py reports any entry that matched nothing, so a stale line here is",
+    "visible rather than a silent no-op."
+  ],
+
+  "bb-The_Ultimate_Hitchhikers_Guide_to_the_Galaxy": [
+    "epub_frw_r1.htm"
+  ],
+
+  "bb-Long_Dark_Tea-Time_of_the_Soul": [
+    "PRAISE FOR DOUGLAS ADAMS"
+  ],
+
+  "bb-The_Salmon_of_Doubt": [
+    "epub_fm1_r1.htm",
+    "epub_fm2_r1.htm",
+    "epub_fm3_r1.htm",
+    "epub_itr_r1.htm",
+    "epub_prl_r1.htm",
+    "epub_p04_r1.htm",
+    "epub_epl_r1.htm",
+    "epub_ack_r1.htm",
+    "epub_qts_r1.htm"
+  ],
+
+  "41. The Shepherd's Crown - Terry Pratchett": [
+    "index_split_001.html",
+    "index_split_027.html",
+    "index_split_028.html",
+    "index_split_030.html",
+    "index_split_033.html"
+  ],
+
+  "40. Raising Steam - Terry Pratchett": [
+    "index_split_033.html"
+  ],
+
+  "A Blink of the Screen - Terry Pratchett": [
+    "foreword.html"
+  ]
+}

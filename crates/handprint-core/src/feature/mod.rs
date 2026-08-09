@@ -182,6 +182,29 @@ pub enum Confidence {
     Ok,
 }
 
+/// The Goh-Barabási burstiness coefficient of a gap sequence.
+///
+/// `(sd - mean) / (sd + mean)`, which lands in `[-1, 1]`: -1 for a perfectly
+/// regular drumbeat, 0 for a Poisson scatter, and toward 1 as events clump with
+/// quiet between the clumps. Bounded, so unlike a raw variance it needs no
+/// length correction before it goes into a two-sided band.
+///
+/// `None` below two gaps, because a spread computed from one number is not a
+/// spread.
+pub(crate) fn burstiness_of(gaps: &[f64]) -> Option<f64> {
+    if gaps.len() < 2 {
+        return None;
+    }
+    let mean = gaps.iter().sum::<f64>() / gaps.len() as f64;
+    let var = gaps.iter().map(|g| (g - mean).powi(2)).sum::<f64>() / gaps.len() as f64;
+    let sd = var.sqrt();
+    if sd + mean <= f64::EPSILON {
+        return Some(0.0);
+    }
+    Some((sd - mean) / (sd + mean))
+}
+
+
 /// The unit a dimension is measured in.
 ///
 /// The critique layer uses this to decide whether a finding can be phrased as
