@@ -1,0 +1,125 @@
+{
+  "schema_version": "proposal-1",
+  "status": "DESIGN_ONLY_NOT_EXECUTABLE",
+  "experiment_id": "screenplay-revision-pilot-001",
+  "repository_commit_inspected": "bc7653c425a02afb6f2558bc4c8ff29b7880698f",
+  "locks_required_before_run": [
+    "corpus_revision_and_hashes",
+    "rights_use_approvals",
+    "work_group_splits",
+    "writer_model_snapshot",
+    "annotator_model_snapshot",
+    "development_selector_snapshot",
+    "heldout_judge_snapshot",
+    "prompt_hashes",
+    "budget_in_tokens_or_currency"
+  ],
+  "task": "same_draft_scene_revision",
+  "sample": {
+    "cases": 48,
+    "target_unique_work_or_brief_groups": 48,
+    "role": "development_pilot",
+    "final_test": false
+  },
+  "arms": [
+    {
+      "id": "A",
+      "rubric": true,
+      "handprint_feedback": false,
+      "mechanism_examples": false
+    },
+    {
+      "id": "B",
+      "rubric": true,
+      "handprint_feedback": true,
+      "mechanism_examples": false
+    },
+    {
+      "id": "C",
+      "rubric": true,
+      "handprint_feedback": false,
+      "mechanism_examples": true
+    },
+    {
+      "id": "D",
+      "rubric": true,
+      "handprint_feedback": true,
+      "mechanism_examples": true
+    }
+  ],
+  "generation": {
+    "shared_starting_draft_per_case": true,
+    "max_rewrites_per_arm": 2,
+    "match_total_budget": true,
+    "budget_limit": null,
+    "count_retries_in_usage": true,
+    "retain_original_candidate": true,
+    "require_selected_candidate_hash_matches_report": true,
+    "selection_policy_must_be_frozen": true
+  },
+  "judging": {
+    "comparison_pairs": [
+      [
+        "B",
+        "A"
+      ],
+      [
+        "C",
+        "A"
+      ],
+      [
+        "D",
+        "A"
+      ]
+    ],
+    "human_ratings_per_pair": 3,
+    "randomize_side": true,
+    "blind_arm_title_author_model": true,
+    "allowed_results": [
+      "A_better",
+      "B_better",
+      "tie",
+      "insufficient_context"
+    ],
+    "technical_errors_separate": true,
+    "reader_inference_excludes_private_intent_and_future_context": true,
+    "constraint_verifier_may_read_preservation_contract": true
+  },
+  "analysis": {
+    "pilot_is_not_confirmatory": true,
+    "cluster": "work_or_original_brief",
+    "primary_confirmatory_comparison_if_promoted": [
+      "D",
+      "A"
+    ],
+    "report_win_loss_tie_unknown": true,
+    "report_constraint_failures_and_costs": true,
+    "do_not_count_raters_as_independent_scenes": true
+  },
+  "example_scene_contract": {
+    "status": "INVENTED_EXAMPLE",
+    "id": "unsafe-launch-001",
+    "style": {
+      "target": "laconic contemporary thriller",
+      "scope": [
+        "dialogue",
+        "filmable_action"
+      ],
+      "preserve_character_differences": true
+    },
+    "preservation": {
+      "required": [
+        "The mechanic refuses to approve the unsafe launch.",
+        "The captain proceeds despite the refusal.",
+        "Concern remains inferable to the audience.",
+        "The personal relationship is not explicitly acknowledged."
+      ],
+      "forbidden": [
+        "Convert refusal into permission.",
+        "Remove the warning.",
+        "Reveal the private relationship early."
+      ]
+    },
+    "change_scope": "dialogue_and_action_realization_not_plot_adaptation"
+  }
+}
