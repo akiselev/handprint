@@ -1,0 +1,42 @@
+[
+  {
+    "pair": "A",
+    "keep": "Y",
+    "margin": "clear",
+    "reason": "Y names the exact Linux packages (libxkbcommon-x11, mesa-vulkan-drivers), says the window will be black on purpose and what the label looks like, and lists real failure messages with exit codes and fixes; X leaves a first-time user staring at a black window with no explanation and no libxkbcommon prerequisite.",
+    "X": {
+      "attention_dropped": null,
+      "confusing": "Step 3 promises 'a window ... opens with the label in it' but never says the background is black or what drawing to expect; the failure list omits the missing-libxkbcommon panic and the silent-black-window case that a Linux user will hit.",
+      "machine_tells": ["'Three things to notice:' followed by bullets that explain what the previous step showed", "'Here is what happened.' paragraph restating the run"],
+      "called_machine_written": "can't tell, 2",
+      "checklist": {"states_prerequisites": "partly", "one_action_per_step": "yes", "says_what_you_should_see": "partly", "recovery_tip_where_step_can_fail": "partly", "says_plainly_what_doesnt_work": "yes", "headings_name_real_subject": "yes", "no_restating_closer": "yes"}
+    },
+    "Y": {
+      "attention_dropped": null,
+      "confusing": "The 256-character truncation note is dense but followable.",
+      "machine_tells": ["'Three things to notice:' followed by bullets that explain what the previous step showed", "'Here is what happened.' paragraph restating the run"],
+      "called_machine_written": "can't tell, 2",
+      "checklist": {"states_prerequisites": "yes", "one_action_per_step": "yes", "says_what_you_should_see": "yes", "recovery_tip_where_step_can_fail": "yes", "says_plainly_what_doesnt_work": "yes", "headings_name_real_subject": "yes", "no_restating_closer": "yes"}
+    }
+  },
+  {
+    "pair": "B",
+    "keep": "X",
+    "margin": "coin-flip",
+    "reason": "The pages are near-identical; X is marginally safer because it states no unverified timing claim ('quick' versus 'no noticeable time') and gives the no-display error text in full rather than with an ellipsis.",
+    "X": {
+      "attention_dropped": null,
+      "confusing": null,
+      "machine_tells": ["'Three things to notice:' followed by bullets that explain what the previous step showed", "'Here is what happened.' paragraph restating the run"],
+      "called_machine_written": "can't tell, 2",
+      "checklist": {"states_prerequisites": "yes", "one_action_per_step": "yes", "says_what_you_should_see": "yes", "recovery_tip_where_step_can_fail": "yes", "says_plainly_what_doesnt_work": "yes", "headings_name_real_subject": "yes", "no_restating_closer": "yes"}
+    },
+    "Y": {
+      "attention_dropped": null,
+      "confusing": "The no-display error is quoted with an ellipsis ('os error at …'), so you cannot match it exactly.",
+      "machine_tells": ["'Three things to notice:' followed by bullets that explain what the previous step showed", "'Here is what happened.' paragraph restating the run", "'That takes no noticeable time for a component this size.'"],
+      "called_machine_written": "can't tell, 2",
+      "checklist": {"states_prerequisites": "yes", "one_action_per_step": "yes", "says_what_you_should_see": "yes", "recovery_tip_where_step_can_fail": "yes", "says_plainly_what_doesnt_work": "yes", "headings_name_real_subject": "yes", "no_restating_closer": "yes"}
+    }
+  }
+]

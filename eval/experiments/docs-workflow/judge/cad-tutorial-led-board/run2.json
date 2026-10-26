@@ -1,0 +1,89 @@
+[
+  {
+    "pair": "A",
+    "keep": "Y",
+    "margin": "slight",
+    "reason": "Y puts the New library blocker first and says what it costs (only step 1 can be finished), while X buries it mid-page and never says the later steps depend on it, even though X is otherwise the more precise page.",
+    "X": {
+      "attention_dropped": "The table-heavy Section 3 paragraph on header extra moves ('Before its pads, click Grid four times, to 1.27 mm...') is where it gets dense.",
+      "confusing": "'Typing into the Name field of some forms, such as New library, can also fail to register, and there is no way round that one yet' is followed by instructions to make the libraries as if it works; it never says steps 2 to 10 depend on it. Step 2 also relies on 'Properties pane' via the palette and a Problems list that Y says may be empty.",
+      "machine_tells": [
+        "'The same walkthrough is a guided tour in the app'",
+        "'Your board is ready to send.'",
+        "'which is right for all three parts: none drives a net or needs a driver' (explains the prior sentence)",
+        "'It should find nothing: every pin is passive and every net joins two pins.' (restates reasoning)"
+      ],
+      "called_machine_written": "can't tell, confidence 2",
+      "checklist": {
+        "states_prerequisites": "partial (shortcut conventions, no way to get the app)",
+        "one_action_per_step": "mostly",
+        "says_what_you_should_see": "yes",
+        "recovery_tip_where_step_can_fail": "yes",
+        "says_plainly_what_doesnt_work_yet": "partial (stated but not its consequence)",
+        "headings_name_real_subject": "yes",
+        "no_restating_closer": "yes"
+      }
+    },
+    "Y": {
+      "attention_dropped": null,
+      "confusing": "The blocker says there is no way round, yet step 2 still tells you to 'press Tab' as though that might help; fine since the Tab is a different trick, but a reader may wonder. Coordinates like 'about (28, 0)' are loose.",
+      "machine_tells": [
+        "'Your board is ready to send.'",
+        "'With no marker and no ratsnest line left, the board is clean.'"
+      ],
+      "called_machine_written": "can't tell, confidence 2",
+      "checklist": {
+        "states_prerequisites": "yes (build from source)",
+        "one_action_per_step": "mostly",
+        "says_what_you_should_see": "yes",
+        "recovery_tip_where_step_can_fail": "yes",
+        "says_plainly_what_doesnt_work_yet": "yes",
+        "headings_name_real_subject": "yes",
+        "no_restating_closer": "yes"
+      }
+    }
+  },
+  {
+    "pair": "B",
+    "keep": "Y",
+    "margin": "slight",
+    "reason": "The content is nearly identical, but Y splits run-together actions into numbered steps (project start, pending-changes, 'Press Space twice, press Tab, name the pin') so each step has one action and is easier to follow with the app open.",
+    "X": {
+      "attention_dropped": null,
+      "confusing": "Step 7 packs three actions into one paragraph; step 2.5 'Press Space twice and Tab, and name the pin K. Then click...' bundles several actions.",
+      "machine_tells": [
+        "'Your board is ready to send.'",
+        "'With no marker and no ratsnest line left, the board is clean.'"
+      ],
+      "called_machine_written": "can't tell, confidence 2",
+      "checklist": {
+        "states_prerequisites": "yes",
+        "one_action_per_step": "mostly",
+        "says_what_you_should_see": "yes",
+        "recovery_tip_where_step_can_fail": "yes",
+        "says_plainly_what_doesnt_work_yet": "yes",
+        "headings_name_real_subject": "yes",
+        "no_restating_closer": "yes"
+      }
+    },
+    "Y": {
+      "attention_dropped": null,
+      "confusing": "Bullets in 'Before you start' omit Page Up/Down detail from the shortcut line but cover it separately; no real confusion. Same loose 'about' coordinates.",
+      "machine_tells": [
+        "Heavy bold on shortcuts and UI labels throughout (e.g. '**P then P**', '**Ctrl+S**')",
+        "'Your board is ready to send.'",
+        "'With no marker and no ratsnest line left, the board is clean.'"
+      ],
+      "called_machine_written": "can't tell, confidence 2",
+      "checklist": {
+        "states_prerequisites": "yes",
+        "one_action_per_step": "yes",
+        "says_what_you_should_see": "yes",
+        "recovery_tip_where_step_can_fail": "yes",
+        "says_plainly_what_doesnt_work_yet": "yes",
+        "headings_name_real_subject": "yes",
+        "no_restating_closer": "yes"
+      }
+    }
+  }
+]

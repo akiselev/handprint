@@ -1,0 +1,42 @@
+[
+  {
+    "pair": "A",
+    "keep": "X",
+    "margin": "clear",
+    "reason": "X gives a complete Cargo.toml (path deps, patch and profile tables), a minimal package.json, a kind that draws its value text with the text shaper step, and literal colours that work, so I can finish the task; Y leaves the dependency list and shaper out, so its kind draws only a box, and its sample CSS uses --sv-* variables that nothing defines.",
+    "X": {
+      "attention_dropped": "Step 4 main() listing is long, but nothing before the use: section made me stop reading.",
+      "confusing": "Step 3 says to use either cfg.spec_fragments or package.json specFragments, but does not say step 4 already does the former; minor.",
+      "machine_tells": ["\"The details that matter:\" bullet list", "\"This component is an illustration, assembled from...\" meta-sentence", "dense bold in the troubleshooting list"],
+      "called_machine_written": "can't tell, confidence 2",
+      "checklist": {"states_prerequisites": "yes", "steps_one_action_each": "mostly", "says_what_you_should_see": "yes", "recovery_tip_where_step_can_fail": "yes", "says_plainly_what_doesnt_work_yet": "yes", "headings_name_real_subject": "yes", "no_restating_closer": "yes"}
+    },
+    "Y": {
+      "attention_dropped": "\"A Svelte app that already runs on skelter, for example with svelters-skelter-run --entry <app dir>\" in the prerequisites, which assumes a working app that the page never helps you create.",
+      "confusing": "Step 3 uses cfg.spec_fragments.push and also shows package.json specFragments for the same file, with no warning that using both makes the compiler merge the fragment twice. The sample CSS uses var(--sv-list-hover), which may not be defined.",
+      "machine_tells": ["\"The details that matter:\"", "\"This component is an illustration, assembled from the patterns in...\"", "\"Steps 2 to 5 are the same for both.\""],
+      "called_machine_written": "can't tell, confidence 2",
+      "checklist": {"states_prerequisites": "partly", "steps_one_action_each": "mostly", "says_what_you_should_see": "yes", "recovery_tip_where_step_can_fail": "yes", "says_plainly_what_doesnt_work_yet": "partly", "headings_name_real_subject": "yes", "no_restating_closer": "yes"}
+    }
+  },
+  {
+    "pair": "B",
+    "keep": "Y",
+    "margin": "slight",
+    "reason": "The pages are nearly identical, but Y states more precisely what to do (\"the checkout is the one place to install them\", the \"Use one or the other\" fragment rule, what a :state() failure looks like in dev and release builds), while X's \"nothing is installed in your app\" is vaguer.",
+    "X": {
+      "attention_dropped": "null",
+      "confusing": "\"so nothing is installed in your app\" is ambiguous about where pnpm install runs.",
+      "machine_tells": ["\"The details that matter:\"", "\"This component is an illustration, assembled from...\"", "en dashes in \"0–31\" and \"32–63\"", "\"Don't use both for the same file\""],
+      "called_machine_written": "can't tell, confidence 2",
+      "checklist": {"states_prerequisites": "yes", "steps_one_action_each": "mostly", "says_what_you_should_see": "yes", "recovery_tip_where_step_can_fail": "yes", "says_plainly_what_doesnt_work_yet": "yes", "headings_name_real_subject": "yes", "no_restating_closer": "yes"}
+    },
+    "Y": {
+      "attention_dropped": "null",
+      "confusing": "null",
+      "machine_tells": ["\"The details that matter:\"", "\"This component is an illustration, assembled from...\""],
+      "called_machine_written": "can't tell, confidence 2",
+      "checklist": {"states_prerequisites": "yes", "steps_one_action_each": "mostly", "says_what_you_should_see": "yes", "recovery_tip_where_step_can_fail": "yes", "says_plainly_what_doesnt_work_yet": "yes", "headings_name_real_subject": "yes", "no_restating_closer": "yes"}
+    }
+  }
+]

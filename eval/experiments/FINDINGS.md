@@ -691,3 +691,37 @@ pair,** which is the cleanest statement of the whole problem this repo has:
 
 The instrument was never wrong about the prose. It was wrong about which number
 to put on the front.
+
+## 32. Polish against the docs reference lost to the unpolished page, 7 of 8
+
+**Found:** the docs-workflow experiment (`docs-workflow/RESULTS.md`), four agent-written pages
+for cadatomic and svelters, each judged blind twice with the order swapped.
+
+Fact-checked draft against the same draft after up to three handprint passes: the polished page
+won 1 verdict, the unpolished one 7, all slight or coin-flip. The judges called the pairs
+near-identical and decided on structure (numbered single-action steps, bulleted prerequisites,
+bold UI labels), which the passes had reduced because the reference, fitted on developer prose,
+has fewer of them. The same comparison against the cold draft went 8 of 8 to the checked page,
+every verdict citing a fact or a step. #27 again, at four pages and with a different judge.
+
+**Not fixed.** A register-matched (GUI manual) reference is the obvious next arm.
+
+## 33. No agent draft tripped the doc-style AI tells
+
+Against a reference fitted on 897 human pages, with 30 held-out human pages as the baseline
+(doc-style High median 1, max 5), every version of every page, cold drafts included, scored 0
+doc-style High findings. #31's separator (cold AI 6) does not fire on drafts written under a
+brief that forbids template headings, restating closers and filler. The tells were prevented
+upstream, so the detector had nothing to do.
+
+## 34. A GUI tutorial sits outside the developer-docs bands whatever is done to it
+
+The LED-board tutorial scored 13 High findings before and after every pass (human median 3.5);
+the two developer pages sat inside the human range from the first draft. Coordinate tables, bold
+labels and click sequences are what a GUI tutorial is; the reference is the wrong population.
+
+## 35. Style passes drift facts
+
+One pass on the skelter how-to invented a claim ("examples only as tests") and shifted three
+sentences' meaning; the reviser caught them only by diffing against the fact-checked draft. The
+loop needs DOCS2's sentence→claim alignment (2b.15) before it can run unattended.

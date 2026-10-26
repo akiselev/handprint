@@ -1,0 +1,89 @@
+[
+  {
+    "pair": "A",
+    "keep": "Y",
+    "margin": "slight",
+    "reason": "Y includes the steps that stop you getting stuck (pointer must be on the sheet for P-key tools, click an empty spot before zooming, Ctrl+A in the designator field, Update the part in Components library after changing a pin type), which X omits.",
+    "X": {
+      "attention_dropped": null,
+      "confusing": "Table row 'Drawing disagrees with the circuit' says 'Go to the place and redraw the connection', but the page says elsewhere such findings have no place on the sheet. 'Unconnected objects in net' level is given only as 'Set by the connection matrix', which doesn't tell you Error or Warning. Never says the P-key tools need the pointer over the sheet.",
+      "machine_tells": [
+        "'Note that the check does not report a passive pin'",
+        "'What happens:' bullet list restating the waiver outcome",
+        "bold on many UI terms",
+        "'Instead of turning the check off, you waive that one finding'"
+      ],
+      "called_machine_written": "can't tell (2)",
+      "checklist": {
+        "states_prerequisites": "yes",
+        "one_action_per_step": "yes",
+        "says_what_you_should_see": "yes",
+        "recovery_tip_where_step_can_fail": "partial",
+        "says_plainly_what_doesnt_work_yet": "yes",
+        "headings_name_real_subject": "yes",
+        "no_restating_closer": "yes"
+      }
+    },
+    "Y": {
+      "attention_dropped": null,
+      "confusing": "Prerequisites paragraph is a long run-on sentence; otherwise followable.",
+      "machine_tells": [
+        "'Once it has run, the check follows the schematic until you close it.' (awkward break)",
+        "'Most of its checks and their default levels come from Altium Designer's.'"
+      ],
+      "called_machine_written": "can't tell (2)",
+      "checklist": {
+        "states_prerequisites": "yes",
+        "one_action_per_step": "yes",
+        "says_what_you_should_see": "yes",
+        "recovery_tip_where_step_can_fail": "yes",
+        "says_plainly_what_doesnt_work_yet": "yes",
+        "headings_name_real_subject": "yes",
+        "no_restating_closer": "yes"
+      }
+    }
+  },
+  {
+    "pair": "B",
+    "keep": "X",
+    "margin": "slight",
+    "reason": "Content is nearly identical, but X lays out prerequisites, waiver outcomes, remove-waiver steps, troubleshooting and gaps as scannable lists with bolded UI names, which is easier to follow mid-task than Y's prose.",
+    "X": {
+      "attention_dropped": null,
+      "confusing": null,
+      "machine_tells": [
+        "'What happens:' bullets",
+        "'You don't need to press the button again.'",
+        "bold UI terms and bold lead-ins in 'When something goes wrong'"
+      ],
+      "called_machine_written": "can't tell (2)",
+      "checklist": {
+        "states_prerequisites": "yes",
+        "one_action_per_step": "yes",
+        "says_what_you_should_see": "yes",
+        "recovery_tip_where_step_can_fail": "yes",
+        "says_plainly_what_doesnt_work_yet": "yes",
+        "headings_name_real_subject": "yes",
+        "no_restating_closer": "yes"
+      }
+    },
+    "Y": {
+      "attention_dropped": null,
+      "confusing": "Prerequisites paragraph is one long run-on sentence; the 'Remove a waiver' section is a single sentence rather than steps, so the menu action is easier to miss.",
+      "machine_tells": [
+        "'Once it has run, the check follows the schematic until you close it.' (awkward break)",
+        "'Most of its checks and their default levels come from Altium Designer's.'"
+      ],
+      "called_machine_written": "can't tell (2)",
+      "checklist": {
+        "states_prerequisites": "yes",
+        "one_action_per_step": "yes",
+        "says_what_you_should_see": "yes",
+        "recovery_tip_where_step_can_fail": "yes",
+        "says_plainly_what_doesnt_work_yet": "yes",
+        "headings_name_real_subject": "yes",
+        "no_restating_closer": "yes"
+      }
+    }
+  }
+]

@@ -1,0 +1,1752 @@
+{
+ "fit_docs": 897,
+ "held_projects": [
+  "django",
+  "fastapi",
+  "helm",
+  "kubernetes",
+  "numpy",
+  "rails-guides"
+ ],
+ "human": {
+  "docs-v0.json": {
+   "docs-django-docs-howto-windows-txt.md": {
+    "tokens": 710,
+    "p_same": 0.0145916552094134,
+    "high": 1,
+    "medium": 4,
+    "total": 6,
+    "docstyle_high": 0,
+    "docstyle_med": 2,
+    "ids_high": [
+     "punct.equals_rate"
+    ]
+   },
+   "docs-django-docs-howto-deployment-wsgi-index-txt.md": {
+    "tokens": 357,
+    "p_same": 0.012279199777023936,
+    "high": 8,
+    "medium": 11,
+    "total": 21,
+    "docstyle_high": 1,
+    "docstyle_med": 0,
+    "ids_high": [
+     "biber.nominalization_rate",
+     "form.latinate_rate",
+     "lex.doc-style.word.obtain",
+     "punct.allcaps_rate",
+     "punct.colon_rate",
+     "punct.equals_rate",
+     "punct.style.dash_em_share",
+     "sent.opener.for_instance"
+    ]
+   },
+   "docs-django-docs-howto-deployment-wsgi-apache-auth-txt.md": {
+    "tokens": 413,
+    "p_same": 0.012094089909689704,
+    "high": 5,
+    "medium": 13,
+    "total": 25,
+    "docstyle_high": 1,
+    "docstyle_med": 1,
+    "ids_high": [
+     "lex.doc-style.word.require",
+     "punct.equals_rate",
+     "punct.underscore_rate",
+     "punct.word_len.13+",
+     "punct.word_len.3"
+    ]
+   },
+   "docs-django-docs-howto-upgrade-version-txt.md": {
+    "tokens": 765,
+    "p_same": 0.01751900988815166,
+    "high": 1,
+    "medium": 8,
+    "total": 13,
+    "docstyle_high": 0,
+    "docstyle_med": 1,
+    "ids_high": [
+     "punct.equals_rate"
+    ]
+   },
+   "docs-django-docs-howto-outputting-csv-txt.md": {
+    "tokens": 760,
+    "p_same": 0.08860329399323061,
+    "high": 4,
+    "medium": 4,
+    "total": 8,
+    "docstyle_high": 1,
+    "docstyle_med": 0,
+    "ids_high": [
+     "lex.doc-style.word.very",
+     "punct.equals_rate",
+     "punct.quote_double_straight_rate",
+     "punct.quote_single_straight_rate"
+    ]
+   },
+   "docs-fastapi-docs-en-docs-advanced-extending-openapi-md.md": {
+    "tokens": 1018,
+    "p_same": 0.2024304689607038,
+    "high": 5,
+    "medium": 6,
+    "total": 14,
+    "docstyle_high": 1,
+    "docstyle_med": 0,
+    "ids_high": [
+     "biber.discourse_particle_rate",
+     "lex.doc-style.word.modify",
+     "punct.informal.elongated_punct",
+     "punct.quote_double_straight_rate",
+     "sent.opener.and"
+    ]
+   },
+   "docs-fastapi-docs-en-docs-advanced-dataclasses-md.md": {
+    "tokens": 441,
+    "p_same": 0.028943583027060623,
+    "high": 9,
+    "medium": 8,
+    "total": 21,
+    "docstyle_high": 1,
+    "docstyle_med": 0,
+    "ids_high": [
+     "dev.headline.number_initial",
+     "lex.doc-style.word.simply",
+     "lex.marketing-eval.cat.directive",
+     "md.numbered_rate",
+     "punct.emoji_rate",
+     "punct.informal.elongated_punct",
+     "sent.marker.actually",
+     "sent.opener.and",
+     "surp.punch_spike_rate"
+    ]
+   },
+   "docs-fastapi-docs-en-docs-advanced-path-operation-advanced-configuration-md.md": {
+    "tokens": 723,
+    "p_same": 0.0868345470106456,
+    "high": 7,
+    "medium": 5,
+    "total": 14,
+    "docstyle_high": 0,
+    "docstyle_med": 1,
+    "ids_high": [
+     "md.italic_rate",
+     "punct.asterisk_rate",
+     "punct.exclaim_rate",
+     "punct.informal.elongated_punct",
+     "sent.marker.nevertheless",
+     "sent.opener.and",
+     "sent.opener.you"
+    ]
+   },
+   "docs-fastapi-docs-en-docs-deployment-deta-md.md": {
+    "tokens": 672,
+    "p_same": 0.019483515730177488,
+    "high": 16,
+    "medium": 12,
+    "total": 33,
+    "docstyle_high": 0,
+    "docstyle_med": 1,
+    "ids_high": [
+     "biber.discourse_particle_rate",
+     "biber.modal.prediction",
+     "biber.pron.p3",
+     "md.bold_rate",
+     "para.count_rate",
+     "punct.asterisk_rate",
+     "punct.emoji_rate",
+     "punct.equals_rate",
+     "punct.exclaim_rate",
+     "punct.informal.elongated_punct",
+     "punct.quote_double_straight_rate",
+     "punct.word_len.4",
+     "sent.count_rate",
+     "sent.punch_short_rate",
+     "surp.punch_spike_rate",
+     "syn.fragment_rate"
+    ]
+   },
+   "docs-fastapi-docs-en-docs-alternatives-md.md": {
+    "tokens": 2806,
+    "p_same": 0.009000000000000008,
+    "high": 15,
+    "medium": 9,
+    "total": 24,
+    "docstyle_high": 6,
+    "docstyle_med": 1,
+    "ids_high": [
+     "biber.amplifier_rate",
+     "lex.doc-style.word.extremely",
+     "lex.doc-style.word.quite",
+     "lex.doc-style.word.relatively",
+     "lex.doc-style.word.several",
+     "lex.doc-style.word.somewhat",
+     "lex.doc-style.word.very",
+     "md.bold_rate",
+     "punct.exclaim_rate",
+     "punct.informal.elongated_punct",
+     "punct.quote_double_straight_rate",
+     "sent.opener.but",
+     "sent.opener.i",
+     "sent.opener.it",
+     "syn.person.p1s"
+    ]
+   },
+   "docs-helm-content-en-docs-topics-chart-tests-md.md": {
+    "tokens": 405,
+    "p_same": 0.19136465937363978,
+    "high": 3,
+    "medium": 4,
+    "total": 9,
+    "docstyle_high": 2,
+    "docstyle_med": 0,
+    "ids_high": [
+     "lex.doc-style.style.a_number_of",
+     "lex.doc-style.word.several",
+     "lex.hyland.cat.attitude"
+    ]
+   },
+   "docs-helm-content-en-docs-chart-best-practices-labels-md.md": {
+    "tokens": 357,
+    "p_same": 0.30013834352458246,
+    "high": 8,
+    "medium": 5,
+    "total": 21,
+    "docstyle_high": 2,
+    "docstyle_med": 0,
+    "ids_high": [
+     "biber.modal.necessity",
+     "biber.pron.demonstrative",
+     "dev.headline.demonstrative",
+     "lex.doc-style.style.best_practice",
+     "lex.doc-style.style.for_the_purpose_of",
+     "punct.pipe_rate",
+     "sent.opener.for_example",
+     "sent.opener.it"
+    ]
+   },
+   "docs-helm-content-en-docs-community-release-checklist-md.md": {
+    "tokens": 2253,
+    "p_same": 0.1406382214220083,
+    "high": 2,
+    "medium": 5,
+    "total": 7,
+    "docstyle_high": 0,
+    "docstyle_med": 3,
+    "ids_high": [
+     "dev.antonym_pair_rate",
+     "dev.headline.number_initial"
+    ]
+   },
+   "docs-helm-content-en-docs-community-developers-md.md": {
+    "tokens": 770,
+    "p_same": 0.15443072828856702,
+    "high": 1,
+    "medium": 7,
+    "total": 17,
+    "docstyle_high": 0,
+    "docstyle_med": 1,
+    "ids_high": [
+     "sent.opener.we"
+    ]
+   },
+   "docs-helm-content-en-docs-intro-quickstart-md.md": {
+    "tokens": 474,
+    "p_same": 0.02215349174945648,
+    "high": 3,
+    "medium": 6,
+    "total": 13,
+    "docstyle_high": 1,
+    "docstyle_med": 2,
+    "ids_high": [
+     "biber.private_verb_rate",
+     "lex.doc-style.struct.title_case_heading",
+     "lex.marketing-eval.cat.directive"
+    ]
+   },
+   "docs-kubernetes-content-en-docs-concepts-cluster-administration-logging-md.md": {
+    "tokens": 1797,
+    "p_same": 0.24387395071074808,
+    "high": 1,
+    "medium": 4,
+    "total": 5,
+    "docstyle_high": 0,
+    "docstyle_med": 0,
+    "ids_high": [
+     "sent.marker.moreover"
+    ]
+   },
+   "docs-kubernetes-content-en-docs-concepts-cluster-administration-flow-control-md.md": {
+    "tokens": 3493,
+    "p_same": 0.045805416544216326,
+    "high": 3,
+    "medium": 3,
+    "total": 10,
+    "docstyle_high": 2,
+    "docstyle_med": 2,
+    "ids_high": [
+     "biber.suasive_verb_rate",
+     "lex.doc-style.struct.em_dash_chain",
+     "lex.doc-style.word.relatively"
+    ]
+   },
+   "docs-kubernetes-content-en-docs-concepts-containers-images-md.md": {
+    "tokens": 2614,
+    "p_same": 0.22152386586895145,
+    "high": 0,
+    "medium": 1,
+    "total": 5,
+    "docstyle_high": 0,
+    "docstyle_med": 0,
+    "ids_high": []
+   },
+   "docs-kubernetes-content-en-docs-concepts-configuration-organize-cluster-access-kubeconfig-md.md": {
+    "tokens": 917,
+    "p_same": 0.1257827857119886,
+    "high": 6,
+    "medium": 4,
+    "total": 14,
+    "docstyle_high": 3,
+    "docstyle_med": 1,
+    "ids_high": [
+     "dev.headline.number_initial",
+     "lex.doc-style.struct.rule_of_three",
+     "lex.doc-style.word.relatively",
+     "lex.doc-style.word.several",
+     "lex.hyland.cat.evidentials",
+     "md.numbered_rate"
+    ]
+   },
+   "docs-kubernetes-content-en-docs-concepts-architecture-garbage-collection-md.md": {
+    "tokens": 1164,
+    "p_same": 0.37906065748413226,
+    "high": 4,
+    "medium": 4,
+    "total": 14,
+    "docstyle_high": 0,
+    "docstyle_med": 0,
+    "ids_high": [
+     "dev.novel_adj_noun_rate",
+     "lex.marketing-eval.cat.directive",
+     "punct.word_len.10",
+     "read.gunning_fog"
+    ]
+   },
+   "docs-numpy-doc-source-user-building-rst.md": {
+    "tokens": 1218,
+    "p_same": 0.03452761280476714,
+    "high": 9,
+    "medium": 1,
+    "total": 11,
+    "docstyle_high": 2,
+    "docstyle_med": 0,
+    "ids_high": [
+     "dev.headline.number_initial",
+     "lex.doc-style.style.please_note_that",
+     "lex.doc-style.word.relatively",
+     "md.numbered_rate",
+     "punct.allcaps_rate",
+     "punct.caret_rate",
+     "punct.style.number_grouped_share",
+     "read.acronym_rate",
+     "syn.allcaps_exclaim_rate"
+    ]
+   },
+   "docs-numpy-doc-source-user-basics-byteswapping-rst.md": {
+    "tokens": 743,
+    "p_same": 0.09372989562280416,
+    "high": 7,
+    "medium": 9,
+    "total": 18,
+    "docstyle_high": 0,
+    "docstyle_med": 0,
+    "ids_high": [
+     "md.quote_rate",
+     "punct.equals_rate",
+     "punct.number_rate",
+     "punct.style.number_grouped_share",
+     "punct.underscore_rate",
+     "sent.opener.i",
+     "syn.fragment_rate"
+    ]
+   },
+   "docs-numpy-doc-source-dev-index-rst.md": {
+    "tokens": 1158,
+    "p_same": 0.37168323426046246,
+    "high": 3,
+    "medium": 2,
+    "total": 7,
+    "docstyle_high": 2,
+    "docstyle_med": 0,
+    "ids_high": [
+     "dev.absurd_precision_rate",
+     "lex.doc-style.style.in_the_process_of",
+     "lex.doc-style.word.modify"
+    ]
+   },
+   "docs-numpy-doc-source-dev-reviewer-guidelines-rst.md": {
+    "tokens": 1323,
+    "p_same": 0.34701300217817255,
+    "high": 2,
+    "medium": 4,
+    "total": 6,
+    "docstyle_high": 1,
+    "docstyle_med": 0,
+    "ids_high": [
+     "lex.doc-style.word.clearly",
+     "sent.marker.clearly"
+    ]
+   },
+   "docs-numpy-doc-source-user-c-info-python-as-glue-rst.md": {
+    "tokens": 5875,
+    "p_same": 0.08499999999999996,
+    "high": 1,
+    "medium": 9,
+    "total": 19,
+    "docstyle_high": 1,
+    "docstyle_med": 6,
+    "ids_high": [
+     "lex.doc-style.word.relatively"
+    ]
+   },
+   "docs-rails-guides-guides-source-active-record-validations-md.md": {
+    "tokens": 5120,
+    "p_same": 0.042561817587573866,
+    "high": 3,
+    "medium": 7,
+    "total": 13,
+    "docstyle_high": 0,
+    "docstyle_med": 3,
+    "ids_high": [
+     "biber.modal.necessity",
+     "lex.hyland.cat.boosters",
+     "punct.informal.lowercase_i"
+    ]
+   },
+   "docs-rails-guides-guides-source-rails-application-templates-md.md": {
+    "tokens": 773,
+    "p_same": 0.4099982869490593,
+    "high": 2,
+    "medium": 6,
+    "total": 16,
+    "docstyle_high": 1,
+    "docstyle_med": 0,
+    "ids_high": [
+     "lex.doc-style.style.please_note_that",
+     "punct.equals_rate"
+    ]
+   },
+   "docs-rails-guides-guides-source-active-record-multiple-databases-md.md": {
+    "tokens": 2575,
+    "p_same": 0.16531760887703223,
+    "high": 0,
+    "medium": 5,
+    "total": 5,
+    "docstyle_high": 0,
+    "docstyle_med": 3,
+    "ids_high": []
+   },
+   "docs-rails-guides-guides-source-plugins-md.md": {
+    "tokens": 1164,
+    "p_same": 0.2745947463598041,
+    "high": 5,
+    "medium": 4,
+    "total": 10,
+    "docstyle_high": 4,
+    "docstyle_med": 1,
+    "ids_high": [
+     "lex.doc-style.style.for_the_purpose_of",
+     "lex.doc-style.word.commence",
+     "lex.doc-style.word.easily",
+     "lex.doc-style.word.simply",
+     "punct.equals_rate"
+    ]
+   },
+   "docs-rails-guides-guides-source-api-app-md.md": {
+    "tokens": 2250,
+    "p_same": 0.30238424963652183,
+    "high": 3,
+    "medium": 5,
+    "total": 9,
+    "docstyle_high": 1,
+    "docstyle_med": 4,
+    "ids_high": [
+     "lex.doc-style.style.in_terms_of",
+     "md.bullet_rate",
+     "punct.colon_rate"
+    ]
+   }
+  },
+  "docs-v1.json": {
+   "docs-django-docs-howto-windows-txt.md": {
+    "tokens": 710,
+    "p_same": 0.3187530924174648,
+    "high": 2,
+    "medium": 3,
+    "total": 6,
+    "docstyle_high": 1,
+    "docstyle_med": 1,
+    "ids_high": [
+     "lex.doc-style.style.best_practice",
+     "punct.equals_rate"
+    ]
+   },
+   "docs-django-docs-howto-deployment-wsgi-index-txt.md": {
+    "tokens": 357,
+    "p_same": 0.10763494712949881,
+    "high": 8,
+    "medium": 9,
+    "total": 20,
+    "docstyle_high": 1,
+    "docstyle_med": 0,
+    "ids_high": [
+     "biber.nominalization_rate",
+     "lex.doc-style.word.obtain",
+     "punct.contraction_rate",
+     "punct.em_dash_rate",
+     "punct.equals_rate",
+     "punct.style.dash_em_share",
+     "punct.style.em_dash_spaced",
+     "sent.opener.for_instance"
+    ]
+   },
+   "docs-django-docs-howto-deployment-wsgi-apache-auth-txt.md": {
+    "tokens": 413,
+    "p_same": 0.003404140917136597,
+    "high": 4,
+    "medium": 10,
+    "total": 20,
+    "docstyle_high": 1,
+    "docstyle_med": 1,
+    "ids_high": [
+     "lex.doc-style.word.require",
+     "punct.equals_rate",
+     "punct.word_len.13+",
+     "punct.word_len.3"
+    ]
+   },
+   "docs-django-docs-howto-upgrade-version-txt.md": {
+    "tokens": 765,
+    "p_same": 0.14642649280830936,
+    "high": 2,
+    "medium": 7,
+    "total": 9,
+    "docstyle_high": 0,
+    "docstyle_med": 1,
+    "ids_high": [
+     "lex.hyland.cat.engagement",
+     "punct.equals_rate"
+    ]
+   },
+   "docs-django-docs-howto-outputting-csv-txt.md": {
+    "tokens": 760,
+    "p_same": 0.05487126706831374,
+    "high": 3,
+    "medium": 3,
+    "total": 8,
+    "docstyle_high": 0,
+    "docstyle_med": 1,
+    "ids_high": [
+     "punct.equals_rate",
+     "punct.quote_double_straight_rate",
+     "punct.quote_single_straight_rate"
+    ]
+   },
+   "docs-fastapi-docs-en-docs-advanced-extending-openapi-md.md": {
+    "tokens": 1018,
+    "p_same": 0.144622332668761,
+    "high": 6,
+    "medium": 6,
+    "total": 15,
+    "docstyle_high": 1,
+    "docstyle_med": 0,
+    "ids_high": [
+     "biber.discourse_particle_rate",
+     "lex.doc-style.word.modify",
+     "punct.informal.elongated_punct",
+     "punct.quote_double_straight_rate",
+     "sent.opener.and",
+     "surp.punch_spike_rate"
+    ]
+   },
+   "docs-fastapi-docs-en-docs-advanced-dataclasses-md.md": {
+    "tokens": 441,
+    "p_same": 0.06285791314246209,
+    "high": 9,
+    "medium": 10,
+    "total": 23,
+    "docstyle_high": 1,
+    "docstyle_med": 1,
+    "ids_high": [
+     "dev.headline.number_initial",
+     "lex.doc-style.word.simply",
+     "lex.marketing-eval.cat.directive",
+     "md.numbered_rate",
+     "punct.emoji_rate",
+     "punct.informal.elongated_punct",
+     "sent.marker.actually",
+     "sent.opener.and",
+     "surp.punch_spike_rate"
+    ]
+   },
+   "docs-fastapi-docs-en-docs-advanced-path-operation-advanced-configuration-md.md": {
+    "tokens": 723,
+    "p_same": 0.0030101089121715363,
+    "high": 6,
+    "medium": 5,
+    "total": 13,
+    "docstyle_high": 0,
+    "docstyle_med": 1,
+    "ids_high": [
+     "md.italic_rate",
+     "punct.exclaim_rate",
+     "punct.informal.elongated_punct",
+     "sent.marker.nevertheless",
+     "sent.opener.and",
+     "sent.opener.you"
+    ]
+   },
+   "docs-fastapi-docs-en-docs-deployment-deta-md.md": {
+    "tokens": 672,
+    "p_same": 0.01896213937955561,
+    "high": 15,
+    "medium": 13,
+    "total": 35,
+    "docstyle_high": 0,
+    "docstyle_med": 1,
+    "ids_high": [
+     "biber.discourse_particle_rate",
+     "biber.modal.prediction",
+     "biber.pron.p2",
+     "biber.pron.p3",
+     "lex.hyland.cat.engagement",
+     "md.bold_rate",
+     "para.count_rate",
+     "punct.emoji_rate",
+     "punct.equals_rate",
+     "punct.exclaim_rate",
+     "punct.informal.elongated_punct",
+     "punct.quote_double_straight_rate",
+     "punct.word_len.4",
+     "surp.punch_spike_rate",
+     "syn.person.p2"
+    ]
+   },
+   "docs-fastapi-docs-en-docs-alternatives-md.md": {
+    "tokens": 2806,
+    "p_same": 0.005499999999999949,
+    "high": 14,
+    "medium": 8,
+    "total": 24,
+    "docstyle_high": 5,
+    "docstyle_med": 2,
+    "ids_high": [
+     "biber.amplifier_rate",
+     "lex.doc-style.word.extremely",
+     "lex.doc-style.word.relatively",
+     "lex.doc-style.word.several",
+     "lex.doc-style.word.somewhat",
+     "lex.doc-style.word.very",
+     "punct.exclaim_rate",
+     "punct.informal.elongated_punct",
+     "punct.quote_double_straight_rate",
+     "sent.opener.but",
+     "sent.opener.i",
+     "sent.opener.it",
+     "sent.opener.so",
+     "syn.person.p1s"
+    ]
+   },
+   "docs-helm-content-en-docs-topics-chart-tests-md.md": {
+    "tokens": 405,
+    "p_same": 0.16404007520963645,
+    "high": 4,
+    "medium": 1,
+    "total": 6,
+    "docstyle_high": 2,
+    "docstyle_med": 0,
+    "ids_high": [
+     "lex.doc-style.style.a_number_of",
+     "lex.doc-style.word.several",
+     "lex.hyland.cat.attitude",
+     "sent.opener.you"
+    ]
+   },
+   "docs-helm-content-en-docs-chart-best-practices-labels-md.md": {
+    "tokens": 357,
+    "p_same": 0.010136609922625673,
+    "high": 8,
+    "medium": 4,
+    "total": 17,
+    "docstyle_high": 2,
+    "docstyle_med": 0,
+    "ids_high": [
+     "biber.modal.necessity",
+     "biber.pron.demonstrative",
+     "dev.headline.demonstrative",
+     "lex.doc-style.style.best_practice",
+     "lex.doc-style.style.for_the_purpose_of",
+     "punct.pipe_rate",
+     "sent.opener.for_example",
+     "sent.opener.it"
+    ]
+   },
+   "docs-helm-content-en-docs-community-release-checklist-md.md": {
+    "tokens": 2253,
+    "p_same": 0.029000000000000026,
+    "high": 2,
+    "medium": 5,
+    "total": 7,
+    "docstyle_high": 0,
+    "docstyle_med": 3,
+    "ids_high": [
+     "dev.antonym_pair_rate",
+     "dev.headline.number_initial"
+    ]
+   },
+   "docs-helm-content-en-docs-community-developers-md.md": {
+    "tokens": 770,
+    "p_same": 0.007409530371715571,
+    "high": 1,
+    "medium": 3,
+    "total": 13,
+    "docstyle_high": 0,
+    "docstyle_med": 1,
+    "ids_high": [
+     "sent.opener.we"
+    ]
+   },
+   "docs-helm-content-en-docs-intro-quickstart-md.md": {
+    "tokens": 474,
+    "p_same": 0.007014087991807901,
+    "high": 4,
+    "medium": 5,
+    "total": 13,
+    "docstyle_high": 2,
+    "docstyle_med": 0,
+    "ids_high": [
+     "biber.private_verb_rate",
+     "lex.doc-style.struct.title_case_heading",
+     "lex.doc-style.word.several",
+     "lex.marketing-eval.cat.directive"
+    ]
+   },
+   "docs-kubernetes-content-en-docs-concepts-cluster-administration-logging-md.md": {
+    "tokens": 1797,
+    "p_same": 0.1957895622211509,
+    "high": 1,
+    "medium": 1,
+    "total": 4,
+    "docstyle_high": 0,
+    "docstyle_med": 0,
+    "ids_high": [
+     "sent.marker.moreover"
+    ]
+   },
+   "docs-kubernetes-content-en-docs-concepts-cluster-administration-flow-control-md.md": {
+    "tokens": 3493,
+    "p_same": 0.058499999999999996,
+    "high": 4,
+    "medium": 7,
+    "total": 13,
+    "docstyle_high": 1,
+    "docstyle_med": 3,
+    "ids_high": [
+     "biber.suasive_verb_rate",
+     "lex.doc-style.struct.em_dash_chain",
+     "punct.style.dash_em_share",
+     "punct.style.em_dash_spaced"
+    ]
+   },
+   "docs-kubernetes-content-en-docs-concepts-containers-images-md.md": {
+    "tokens": 2614,
+    "p_same": 0.13874119330245988,
+    "high": 0,
+    "medium": 1,
+    "total": 2,
+    "docstyle_high": 0,
+    "docstyle_med": 0,
+    "ids_high": []
+   },
+   "docs-kubernetes-content-en-docs-concepts-configuration-organize-cluster-access-kubeconfig-md.md": {
+    "tokens": 917,
+    "p_same": 0.03632389926816983,
+    "high": 6,
+    "medium": 3,
+    "total": 15,
+    "docstyle_high": 3,
+    "docstyle_med": 1,
+    "ids_high": [
+     "dev.headline.number_initial",
+     "dev.triplet_rate",
+     "lex.doc-style.struct.rule_of_three",
+     "lex.doc-style.word.relatively",
+     "lex.doc-style.word.several",
+     "md.numbered_rate"
+    ]
+   },
+   "docs-kubernetes-content-en-docs-concepts-architecture-garbage-collection-md.md": {
+    "tokens": 1164,
+    "p_same": 0.03470349095971134,
+    "high": 3,
+    "medium": 1,
+    "total": 7,
+    "docstyle_high": 0,
+    "docstyle_med": 0,
+    "ids_high": [
+     "dev.novel_adj_noun_rate",
+     "lex.marketing-eval.cat.directive",
+     "punct.word_len.10"
+    ]
+   },
+   "docs-numpy-doc-source-user-building-rst.md": {
+    "tokens": 1218,
+    "p_same": 0.20331672978540194,
+    "high": 5,
+    "medium": 4,
+    "total": 9,
+    "docstyle_high": 1,
+    "docstyle_med": 1,
+    "ids_high": [
+     "dev.headline.number_initial",
+     "lex.doc-style.style.please_note_that",
+     "md.numbered_rate",
+     "punct.caret_rate",
+     "syn.allcaps_exclaim_rate"
+    ]
+   },
+   "docs-numpy-doc-source-user-basics-byteswapping-rst.md": {
+    "tokens": 743,
+    "p_same": 0.1561711067595253,
+    "high": 5,
+    "medium": 9,
+    "total": 18,
+    "docstyle_high": 0,
+    "docstyle_med": 0,
+    "ids_high": [
+     "md.quote_rate",
+     "punct.number_rate",
+     "sent.opener.i",
+     "syn.fragment_rate",
+     "syn.person.p1s"
+    ]
+   },
+   "docs-numpy-doc-source-dev-index-rst.md": {
+    "tokens": 1158,
+    "p_same": 0.22732318072270757,
+    "high": 3,
+    "medium": 2,
+    "total": 6,
+    "docstyle_high": 2,
+    "docstyle_med": 0,
+    "ids_high": [
+     "lex.doc-style.style.in_the_process_of",
+     "lex.doc-style.word.modify",
+     "surp.punch_spike_rate"
+    ]
+   },
+   "docs-numpy-doc-source-dev-reviewer-guidelines-rst.md": {
+    "tokens": 1323,
+    "p_same": 0.23968718852330048,
+    "high": 2,
+    "medium": 4,
+    "total": 6,
+    "docstyle_high": 1,
+    "docstyle_med": 0,
+    "ids_high": [
+     "lex.doc-style.word.clearly",
+     "sent.marker.clearly"
+    ]
+   },
+   "docs-numpy-doc-source-user-c-info-python-as-glue-rst.md": {
+    "tokens": 5875,
+    "p_same": 0.03749999999999998,
+    "high": 0,
+    "medium": 8,
+    "total": 17,
+    "docstyle_high": 0,
+    "docstyle_med": 4,
+    "ids_high": []
+   },
+   "docs-rails-guides-guides-source-active-record-validations-md.md": {
+    "tokens": 5120,
+    "p_same": 0.010499999999999954,
+    "high": 3,
+    "medium": 6,
+    "total": 13,
+    "docstyle_high": 0,
+    "docstyle_med": 3,
+    "ids_high": [
+     "biber.modal.necessity",
+     "lex.hyland.cat.boosters",
+     "punct.informal.lowercase_i"
+    ]
+   },
+   "docs-rails-guides-guides-source-rails-application-templates-md.md": {
+    "tokens": 773,
+    "p_same": 0.11371300728837958,
+    "high": 2,
+    "medium": 9,
+    "total": 17,
+    "docstyle_high": 1,
+    "docstyle_med": 0,
+    "ids_high": [
+     "lex.doc-style.style.please_note_that",
+     "surp.punch_spike_rate"
+    ]
+   },
+   "docs-rails-guides-guides-source-active-record-multiple-databases-md.md": {
+    "tokens": 2575,
+    "p_same": 0.03749999999999998,
+    "high": 0,
+    "medium": 4,
+    "total": 5,
+    "docstyle_high": 0,
+    "docstyle_med": 2,
+    "ids_high": []
+   },
+   "docs-rails-guides-guides-source-plugins-md.md": {
+    "tokens": 1164,
+    "p_same": 0.17968478951477157,
+    "high": 5,
+    "medium": 5,
+    "total": 10,
+    "docstyle_high": 4,
+    "docstyle_med": 1,
+    "ids_high": [
+     "lex.doc-style.style.for_the_purpose_of",
+     "lex.doc-style.word.commence",
+     "lex.doc-style.word.easily",
+     "lex.doc-style.word.simply",
+     "punct.hyphen_rate"
+    ]
+   },
+   "docs-rails-guides-guides-source-api-app-md.md": {
+    "tokens": 2250,
+    "p_same": 0.3573186443382777,
+    "high": 1,
+    "medium": 7,
+    "total": 8,
+    "docstyle_high": 0,
+    "docstyle_med": 4,
+    "ids_high": [
+     "md.bullet_rate"
+    ]
+   }
+  }
+ },
+ "drafts": {
+  "docs-v0.json": {
+   "cad-howto-erc": {
+    "draft0.md": {
+     "tokens": 2029,
+     "p_same": 0.01637832347537994,
+     "high": 6,
+     "medium": 10,
+     "total": 27,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.synthetic_negation_rate",
+      "md.bold_rate",
+      "punct.asterisk_rate",
+      "punct.ellipsis_char_rate",
+      "punct.style.ellipsis_char_share",
+      "punct.word_len.3"
+     ]
+    },
+    "draft1.md": {
+     "tokens": 2017,
+     "p_same": 0.010854924455001325,
+     "high": 5,
+     "medium": 13,
+     "total": 31,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.synthetic_negation_rate",
+      "md.bold_rate",
+      "punct.asterisk_rate",
+      "punct.ellipsis_char_rate",
+      "punct.style.ellipsis_char_share"
+     ]
+    },
+    "draft2.md": {
+     "tokens": 2052,
+     "p_same": 0.016122705492374205,
+     "high": 2,
+     "medium": 11,
+     "total": 28,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "punct.ellipsis_char_rate",
+      "punct.style.ellipsis_char_share"
+     ]
+    },
+    "draft3.md": {
+     "tokens": 2032,
+     "p_same": 0.016851477434532462,
+     "high": 2,
+     "medium": 10,
+     "total": 27,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "punct.ellipsis_char_rate",
+      "punct.style.ellipsis_char_share"
+     ]
+    },
+    "final.md": {
+     "tokens": 2032,
+     "p_same": 0.016851477434532462,
+     "high": 2,
+     "medium": 10,
+     "total": 27,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "punct.ellipsis_char_rate",
+      "punct.style.ellipsis_char_share"
+     ]
+    },
+    "published.md": {
+     "tokens": 2156,
+     "p_same": 0.014000000000000012,
+     "high": 6,
+     "medium": 12,
+     "total": 30,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.synthetic_negation_rate",
+      "md.bold_rate",
+      "punct.asterisk_rate",
+      "punct.ellipsis_char_rate",
+      "punct.style.ellipsis_char_share",
+      "punct.word_len.3"
+     ]
+    }
+   },
+   "cad-tutorial-led-board": {
+    "draft0.md": {
+     "tokens": 2297,
+     "p_same": 0.0,
+     "high": 14,
+     "medium": 15,
+     "total": 38,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "dev.headline.number_initial",
+      "md.bold_rate",
+      "md.numbered_rate",
+      "punct.asterisk_rate",
+      "punct.comma_rate",
+      "punct.ellipsis_char_rate",
+      "punct.en_dash_rate",
+      "punct.number_rate",
+      "punct.style.ellipsis_char_share",
+      "punct.word_len.3",
+      "punct.word_len.5",
+      "read.flesch_kincaid",
+      "read.gunning_fog",
+      "read.smog"
+     ]
+    },
+    "draft1.md": {
+     "tokens": 2207,
+     "p_same": 0.0,
+     "high": 14,
+     "medium": 12,
+     "total": 37,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "dev.headline.number_initial",
+      "md.bold_rate",
+      "md.numbered_rate",
+      "punct.asterisk_rate",
+      "punct.comma_rate",
+      "punct.ellipsis_char_rate",
+      "punct.en_dash_rate",
+      "punct.number_rate",
+      "punct.style.ellipsis_char_share",
+      "punct.word_len.3",
+      "punct.word_len.5",
+      "read.flesch_kincaid",
+      "read.gunning_fog",
+      "read.smog"
+     ]
+    },
+    "draft2.md": {
+     "tokens": 2212,
+     "p_same": 0.0,
+     "high": 14,
+     "medium": 12,
+     "total": 36,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "dev.headline.number_initial",
+      "md.bold_rate",
+      "md.numbered_rate",
+      "punct.asterisk_rate",
+      "punct.comma_rate",
+      "punct.ellipsis_char_rate",
+      "punct.en_dash_rate",
+      "punct.number_rate",
+      "punct.style.ellipsis_char_share",
+      "punct.word_len.3",
+      "punct.word_len.5",
+      "read.flesch_kincaid",
+      "read.gunning_fog",
+      "read.smog"
+     ]
+    },
+    "draft3.md": {
+     "tokens": 2230,
+     "p_same": 0.0,
+     "high": 14,
+     "medium": 12,
+     "total": 36,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "dev.headline.number_initial",
+      "md.bold_rate",
+      "md.numbered_rate",
+      "punct.asterisk_rate",
+      "punct.comma_rate",
+      "punct.ellipsis_char_rate",
+      "punct.en_dash_rate",
+      "punct.number_rate",
+      "punct.style.ellipsis_char_share",
+      "punct.word_len.3",
+      "punct.word_len.5",
+      "read.flesch_kincaid",
+      "read.gunning_fog",
+      "read.smog"
+     ]
+    },
+    "final.md": {
+     "tokens": 2230,
+     "p_same": 0.0,
+     "high": 14,
+     "medium": 12,
+     "total": 36,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "dev.headline.number_initial",
+      "md.bold_rate",
+      "md.numbered_rate",
+      "punct.asterisk_rate",
+      "punct.comma_rate",
+      "punct.ellipsis_char_rate",
+      "punct.en_dash_rate",
+      "punct.number_rate",
+      "punct.style.ellipsis_char_share",
+      "punct.word_len.3",
+      "punct.word_len.5",
+      "read.flesch_kincaid",
+      "read.gunning_fog",
+      "read.smog"
+     ]
+    },
+    "published.md": {
+     "tokens": 2207,
+     "p_same": 0.0,
+     "high": 14,
+     "medium": 12,
+     "total": 37,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "dev.headline.number_initial",
+      "md.bold_rate",
+      "md.numbered_rate",
+      "punct.asterisk_rate",
+      "punct.comma_rate",
+      "punct.ellipsis_char_rate",
+      "punct.en_dash_rate",
+      "punct.number_rate",
+      "punct.style.ellipsis_char_share",
+      "punct.word_len.3",
+      "punct.word_len.5",
+      "read.flesch_kincaid",
+      "read.gunning_fog",
+      "read.smog"
+     ]
+    }
+   },
+   "sv-howto-skelter": {
+    "draft0.md": {
+     "tokens": 1734,
+     "p_same": 0.10114972255842501,
+     "high": 2,
+     "medium": 5,
+     "total": 9,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.downtoner_rate",
+      "punct.en_dash_rate"
+     ]
+    },
+    "draft1.md": {
+     "tokens": 2080,
+     "p_same": 0.016007511800884753,
+     "high": 4,
+     "medium": 9,
+     "total": 13,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.downtoner_rate",
+      "punct.ellipsis_char_rate",
+      "punct.en_dash_rate",
+      "punct.style.ellipsis_char_share"
+     ]
+    },
+    "draft2.md": {
+     "tokens": 2103,
+     "p_same": 0.09870486497368833,
+     "high": 1,
+     "medium": 5,
+     "total": 7,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.downtoner_rate"
+     ]
+    },
+    "draft3.md": {
+     "tokens": 2113,
+     "p_same": 0.09951379983458611,
+     "high": 1,
+     "medium": 6,
+     "total": 7,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.downtoner_rate"
+     ]
+    },
+    "draft4.md": {
+     "tokens": 2116,
+     "p_same": 0.09940224595482601,
+     "high": 1,
+     "medium": 6,
+     "total": 7,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.downtoner_rate"
+     ]
+    },
+    "final.md": {
+     "tokens": 2116,
+     "p_same": 0.09940224595482601,
+     "high": 1,
+     "medium": 6,
+     "total": 7,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.downtoner_rate"
+     ]
+    },
+    "published.md": {
+     "tokens": 2164,
+     "p_same": 0.10109154728142528,
+     "high": 1,
+     "medium": 6,
+     "total": 8,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.downtoner_rate"
+     ]
+    }
+   },
+   "sv-tutorial-first-skelter-app": {
+    "draft0.md": {
+     "tokens": 1704,
+     "p_same": 0.06803355440006516,
+     "high": 2,
+     "medium": 5,
+     "total": 9,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "punct.ellipsis_char_rate",
+      "punct.style.ellipsis_char_share"
+     ]
+    },
+    "draft1.md": {
+     "tokens": 2048,
+     "p_same": 0.10704083912880191,
+     "high": 3,
+     "medium": 5,
+     "total": 9,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.synthetic_negation_rate",
+      "punct.ellipsis_char_rate",
+      "punct.style.ellipsis_char_share"
+     ]
+    },
+    "draft2.md": {
+     "tokens": 2042,
+     "p_same": 0.13471480492838744,
+     "high": 0,
+     "medium": 5,
+     "total": 7,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": []
+    },
+    "draft3.md": {
+     "tokens": 2037,
+     "p_same": 0.13540626612416662,
+     "high": 0,
+     "medium": 5,
+     "total": 7,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": []
+    },
+    "final.md": {
+     "tokens": 2037,
+     "p_same": 0.13540626612416662,
+     "high": 0,
+     "medium": 5,
+     "total": 7,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": []
+    },
+    "published.md": {
+     "tokens": 2073,
+     "p_same": 0.10083019542587864,
+     "high": 3,
+     "medium": 5,
+     "total": 9,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.synthetic_negation_rate",
+      "punct.ellipsis_char_rate",
+      "punct.style.ellipsis_char_share"
+     ]
+    }
+   }
+  },
+  "docs-v1.json": {
+   "cad-howto-erc": {
+    "draft0.md": {
+     "tokens": 2029,
+     "p_same": 0.0448026888196646,
+     "high": 5,
+     "medium": 10,
+     "total": 26,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.synthetic_negation_rate",
+      "md.bold_rate",
+      "md.table_row_rate",
+      "punct.ellipsis_char_rate",
+      "punct.style.ellipsis_char_share"
+     ]
+    },
+    "draft1.md": {
+     "tokens": 2017,
+     "p_same": 0.0,
+     "high": 6,
+     "medium": 12,
+     "total": 30,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.synthetic_negation_rate",
+      "md.bold_rate",
+      "md.table_row_rate",
+      "punct.asterisk_rate",
+      "punct.ellipsis_char_rate",
+      "punct.style.ellipsis_char_share"
+     ]
+    },
+    "draft2.md": {
+     "tokens": 2052,
+     "p_same": 0.005499999999999949,
+     "high": 3,
+     "medium": 9,
+     "total": 27,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "md.table_row_rate",
+      "punct.ellipsis_char_rate",
+      "punct.style.ellipsis_char_share"
+     ]
+    },
+    "draft3.md": {
+     "tokens": 2032,
+     "p_same": 0.005499999999999949,
+     "high": 3,
+     "medium": 8,
+     "total": 27,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "md.table_row_rate",
+      "punct.ellipsis_char_rate",
+      "punct.style.ellipsis_char_share"
+     ]
+    },
+    "final.md": {
+     "tokens": 2032,
+     "p_same": 0.005499999999999949,
+     "high": 3,
+     "medium": 8,
+     "total": 27,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "md.table_row_rate",
+      "punct.ellipsis_char_rate",
+      "punct.style.ellipsis_char_share"
+     ]
+    },
+    "published.md": {
+     "tokens": 2156,
+     "p_same": 0.0024999999999999467,
+     "high": 6,
+     "medium": 11,
+     "total": 28,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.synthetic_negation_rate",
+      "md.bold_rate",
+      "md.table_row_rate",
+      "punct.asterisk_rate",
+      "punct.ellipsis_char_rate",
+      "punct.style.ellipsis_char_share"
+     ]
+    }
+   },
+   "cad-tutorial-led-board": {
+    "draft0.md": {
+     "tokens": 2297,
+     "p_same": 0.0,
+     "high": 13,
+     "medium": 16,
+     "total": 36,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "dev.headline.number_initial",
+      "md.bold_rate",
+      "md.numbered_rate",
+      "punct.asterisk_rate",
+      "punct.comma_rate",
+      "punct.ellipsis_char_rate",
+      "punct.en_dash_rate",
+      "punct.number_rate",
+      "punct.style.ellipsis_char_share",
+      "punct.word_len.5",
+      "read.flesch_kincaid",
+      "read.gunning_fog",
+      "read.smog"
+     ]
+    },
+    "draft1.md": {
+     "tokens": 2207,
+     "p_same": 0.0,
+     "high": 13,
+     "medium": 13,
+     "total": 37,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "dev.headline.number_initial",
+      "md.bold_rate",
+      "md.numbered_rate",
+      "punct.asterisk_rate",
+      "punct.comma_rate",
+      "punct.ellipsis_char_rate",
+      "punct.en_dash_rate",
+      "punct.number_rate",
+      "punct.style.ellipsis_char_share",
+      "punct.word_len.5",
+      "read.flesch_kincaid",
+      "read.gunning_fog",
+      "read.smog"
+     ]
+    },
+    "draft2.md": {
+     "tokens": 2212,
+     "p_same": 0.0,
+     "high": 13,
+     "medium": 12,
+     "total": 37,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "dev.headline.number_initial",
+      "md.bold_rate",
+      "md.numbered_rate",
+      "punct.asterisk_rate",
+      "punct.comma_rate",
+      "punct.ellipsis_char_rate",
+      "punct.en_dash_rate",
+      "punct.number_rate",
+      "punct.style.ellipsis_char_share",
+      "punct.word_len.5",
+      "read.flesch_kincaid",
+      "read.gunning_fog",
+      "read.smog"
+     ]
+    },
+    "draft3.md": {
+     "tokens": 2230,
+     "p_same": 0.0,
+     "high": 13,
+     "medium": 12,
+     "total": 36,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "dev.headline.number_initial",
+      "md.bold_rate",
+      "md.numbered_rate",
+      "punct.asterisk_rate",
+      "punct.comma_rate",
+      "punct.ellipsis_char_rate",
+      "punct.en_dash_rate",
+      "punct.number_rate",
+      "punct.style.ellipsis_char_share",
+      "punct.word_len.5",
+      "read.flesch_kincaid",
+      "read.gunning_fog",
+      "read.smog"
+     ]
+    },
+    "final.md": {
+     "tokens": 2230,
+     "p_same": 0.0,
+     "high": 13,
+     "medium": 12,
+     "total": 36,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "dev.headline.number_initial",
+      "md.bold_rate",
+      "md.numbered_rate",
+      "punct.asterisk_rate",
+      "punct.comma_rate",
+      "punct.ellipsis_char_rate",
+      "punct.en_dash_rate",
+      "punct.number_rate",
+      "punct.style.ellipsis_char_share",
+      "punct.word_len.5",
+      "read.flesch_kincaid",
+      "read.gunning_fog",
+      "read.smog"
+     ]
+    },
+    "published.md": {
+     "tokens": 2207,
+     "p_same": 0.0,
+     "high": 13,
+     "medium": 13,
+     "total": 37,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "dev.headline.number_initial",
+      "md.bold_rate",
+      "md.numbered_rate",
+      "punct.asterisk_rate",
+      "punct.comma_rate",
+      "punct.ellipsis_char_rate",
+      "punct.en_dash_rate",
+      "punct.number_rate",
+      "punct.style.ellipsis_char_share",
+      "punct.word_len.5",
+      "read.flesch_kincaid",
+      "read.gunning_fog",
+      "read.smog"
+     ]
+    }
+   },
+   "sv-howto-skelter": {
+    "draft0.md": {
+     "tokens": 1734,
+     "p_same": 0.010499999999999954,
+     "high": 2,
+     "medium": 2,
+     "total": 8,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.downtoner_rate",
+      "punct.en_dash_rate"
+     ]
+    },
+    "draft1.md": {
+     "tokens": 2080,
+     "p_same": 0.007000000000000006,
+     "high": 4,
+     "medium": 4,
+     "total": 13,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.downtoner_rate",
+      "punct.ellipsis_char_rate",
+      "punct.en_dash_rate",
+      "punct.style.ellipsis_char_share"
+     ]
+    },
+    "draft2.md": {
+     "tokens": 2103,
+     "p_same": 0.007000000000000006,
+     "high": 1,
+     "medium": 2,
+     "total": 7,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.downtoner_rate"
+     ]
+    },
+    "draft3.md": {
+     "tokens": 2113,
+     "p_same": 0.010499999999999954,
+     "high": 1,
+     "medium": 2,
+     "total": 7,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.downtoner_rate"
+     ]
+    },
+    "draft4.md": {
+     "tokens": 2116,
+     "p_same": 0.007000000000000006,
+     "high": 1,
+     "medium": 2,
+     "total": 7,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.downtoner_rate"
+     ]
+    },
+    "final.md": {
+     "tokens": 2116,
+     "p_same": 0.007000000000000006,
+     "high": 1,
+     "medium": 2,
+     "total": 7,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.downtoner_rate"
+     ]
+    },
+    "published.md": {
+     "tokens": 2164,
+     "p_same": 0.010499999999999954,
+     "high": 1,
+     "medium": 1,
+     "total": 7,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.downtoner_rate"
+     ]
+    }
+   },
+   "sv-tutorial-first-skelter-app": {
+    "draft0.md": {
+     "tokens": 1704,
+     "p_same": 0.020135466618947266,
+     "high": 2,
+     "medium": 2,
+     "total": 9,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "punct.ellipsis_char_rate",
+      "punct.style.ellipsis_char_share"
+     ]
+    },
+    "draft1.md": {
+     "tokens": 2048,
+     "p_same": 0.11248853846489533,
+     "high": 3,
+     "medium": 2,
+     "total": 13,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.synthetic_negation_rate",
+      "punct.ellipsis_char_rate",
+      "punct.style.ellipsis_char_share"
+     ]
+    },
+    "draft2.md": {
+     "tokens": 2042,
+     "p_same": 0.15166148534404755,
+     "high": 0,
+     "medium": 2,
+     "total": 8,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": []
+    },
+    "draft3.md": {
+     "tokens": 2037,
+     "p_same": 0.14998903105805467,
+     "high": 0,
+     "medium": 3,
+     "total": 9,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": []
+    },
+    "final.md": {
+     "tokens": 2037,
+     "p_same": 0.14998903105805467,
+     "high": 0,
+     "medium": 3,
+     "total": 9,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": []
+    },
+    "published.md": {
+     "tokens": 2073,
+     "p_same": 0.010499999999999954,
+     "high": 3,
+     "medium": 1,
+     "total": 11,
+     "docstyle_high": 0,
+     "docstyle_med": 0,
+     "ids_high": [
+      "biber.synthetic_negation_rate",
+      "punct.ellipsis_char_rate",
+      "punct.style.ellipsis_char_share"
+     ]
+    }
+   }
+  }
+ }
+}

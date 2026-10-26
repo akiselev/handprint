@@ -1,0 +1,14 @@
+{
+  "cad-howto-erc": {
+    "path": "/tmp/claude-0/-home-user/67cb6ead-4593-5b3c-af70-6c2db70b2853/scratchpad/exp/live/gq/shots/0023-25-after-erc.png",
+    "after_heading": "Run the check",
+    "alt": "cadatomic after Check (ERC) on a sheet with one stray net label: an amber ring-and-cross marker sits on NetLabel1, the Problems tab lists 'Warning  Floating net labels  untitled-1 · Sheet1 · (0.0000, 5.0800) mm' under 'Schematic 1 problem', and the status line reads 'Electrical rules check: 0 errors, 1 warning'.",
+    "caption": "After Check (ERC): the amber marker on the sheet, the finding as a row in Problems, and the count in the status line. (The counter at the far right still reads 0 errors, 0 warnings.) From a live run of cadatomic under a virtual display (Xvfb)."
+  },
+  "cad-tutorial-led-board": {
+    "path": "/tmp/claude-0/-home-user/67cb6ead-4593-5b3c-af70-6c2db70b2853/scratchpad/exp/live/gq/shots/0011-13-after-accept.png",
+    "after_heading": "Make the symbol library",
+    "alt": "cadatomic after accepting the New library form: a Library tab shows the empty led-symbols library (Symbols 0, Footprints 0, Parts 0) with the New symbol, Prefix and New footprint fields at the bottom, and the status line reads 'Library opened'.",
+    "caption": "The new led-symbols library, open in its Library tab, with the New symbol and Prefix fields you use next. From a live run of cadatomic under a virtual display (Xvfb)."
+  }
+}

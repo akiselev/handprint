@@ -1,0 +1,42 @@
+[
+  {
+    "pair": "A",
+    "keep": "Y",
+    "margin": "clear",
+    "reason": "Y gives the Cargo.toml and package.json setup and the text-shaper line, so the widget actually draws its value and the stated result is reachable; X omits these and its record never draws text.",
+    "X": {
+      "attention_dropped": null,
+      "confusing": "Step 3 pushes the fragment onto cfg.spec_fragments while the same section says package.json specFragments is also read, with no warning about the double-merge that its own error list later hints at; no Cargo.toml or package.json is given, so a cold reader cannot build.",
+      "machine_tells": ["'The details that matter:'", "'Further down the page are two related extension points'"],
+      "called_machine_written": "can't tell (2)",
+      "checklist": {"states_prerequisites": "partly", "one_action_per_step": "yes", "says_what_you_should_see": "yes", "recovery_tip": "yes", "says_plainly_what_doesnt_work": "partly", "headings_name_real_subject": "yes", "no_restating_closer": "yes"}
+    },
+    "Y": {
+      "attention_dropped": null,
+      "confusing": null,
+      "machine_tells": ["'The details that matter:'"],
+      "called_machine_written": "can't tell (2)",
+      "checklist": {"states_prerequisites": "yes", "one_action_per_step": "yes", "says_what_you_should_see": "yes", "recovery_tip": "yes", "says_plainly_what_doesnt_work": "yes", "headings_name_real_subject": "yes", "no_restating_closer": "yes"}
+    }
+  },
+  {
+    "pair": "B",
+    "keep": "Y",
+    "margin": "coin-flip",
+    "reason": "The pages are nearly identical; Y is marginally more direct (says there is no skelter starter app, and 'nothing is installed in your app').",
+    "X": {
+      "attention_dropped": null,
+      "confusing": null,
+      "machine_tells": ["'The details that matter:'"],
+      "called_machine_written": "can't tell (2)",
+      "checklist": {"states_prerequisites": "yes", "one_action_per_step": "yes", "says_what_you_should_see": "yes", "recovery_tip": "yes", "says_plainly_what_doesnt_work": "yes", "headings_name_real_subject": "yes", "no_restating_closer": "yes"}
+    },
+    "Y": {
+      "attention_dropped": null,
+      "confusing": null,
+      "machine_tells": ["'The details that matter:'"],
+      "called_machine_written": "can't tell (2)",
+      "checklist": {"states_prerequisites": "yes", "one_action_per_step": "yes", "says_what_you_should_see": "yes", "recovery_tip": "yes", "says_plainly_what_doesnt_work": "yes", "headings_name_real_subject": "yes", "no_restating_closer": "yes"}
+    }
+  }
+]
