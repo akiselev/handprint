@@ -725,3 +725,16 @@ labels and click sequences are what a GUI tutorial is; the reference is the wron
 One pass on the skelter how-to invented a claim ("examples only as tests") and shifted three
 sentences' meaning; the reviser caught them only by diffing against the fact-checked draft. The
 loop needs DOCS2's sentence→claim alignment (2b.15) before it can run unattended.
+
+## 36. Every check in round 1 measured following, so the pages taught nothing
+
+**Found:** by the user, reading the published round-1 tutorials: "They explain nothing, give no
+insight." Every stage had passed them.
+
+The brief defined a tutorial as steps with results, the fact rule excluded explanations (they have
+no `path:line`), the sources (code, tours) contain no reasons, and the judge asked which page you'd
+keep while doing the task. Nothing measured understanding, so nothing produced it. Rewriting one
+page to teach, with a held-out comprehension test as the measure, moved its score from 8 to 11.5 of
+14 and won both "which taught you more" judgements clearly (`docs-workflow/RESULTS.md`, round 2).
+The objective decides the page. A docs pipeline needs a comprehension test in the gate, not only
+fact and task checks.

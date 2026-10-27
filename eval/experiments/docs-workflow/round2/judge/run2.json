@@ -1,0 +1,28 @@
+{
+  "decision_1_understanding": {
+    "keep": "X",
+    "margin": "clear",
+    "reason": "X explains the model (host ops one way, only listened events and observed-prop change notices the other, change classes, Svelte-decides/Rust-does-per-frame split, startup order) and shows measured evidence, so I could predict e.g. that hover or scroll never reaches JS, that an unbound prop yields no change notices, or that a failure in a new layer shows up in a fixed order; Y shows only what to type and what appears."
+  },
+  "decision_2_with_code_open": {
+    "keep": "Y",
+    "margin": "slight",
+    "reason": "Y is a clean setup-run-extend path with a troubleshooting list and pointers to next examples, so I would hit fewer detours; X is far better to learn from but demands more editing of main.rs (dump function, probe, logger, theme swap, clear colour) with several revert-before-continuing steps, though its experiments are what make the framework stick."
+  },
+  "X": {
+    "most_insightful": "\"Steps 3 and 4 happen before step 5, and that order will matter more than once on this page: your component has run, and the whole tree exists, before there is any window to show it in.\" Also the traffic counters section: \"Hovering should add nothing to posts or sets\", followed by the actual table showing 109 extra checkpoints and no events or prop writes. It turns the Svelte/Rust boundary into something I can count and then use to predict.",
+    "attention_dropped": "The 'Why the window is black' section, which runs three sub-experiments (style, theme swap, clear colour) with Rust edits to revert each time, and the 'When something goes wrong' log-reading with WARN/ERROR lines from winit and wgpu. Both are interesting but long, and the logger boilerplate is mostly diagnostic plumbing. The compiled-output walkthrough also has two long 'less than the spec allows' paragraphs (numeric prop ids, native templates) about features that are not switched on.",
+    "confusing": "The 256-byte truncated-error story is explained at length, with different output for different checkout paths, so I could not tell what to expect on my own machine until the CLI workaround. The hover-colour 'looks like a repaint bug' note is honest but leaves me unsure whether my screen is broken. 'Four change classes' lists structure although 'no prop declares it', which needs a second read. The `dump` helper uses a lot of unexplained API (with_doc, kind_of, registry, text_prop).",
+    "padding_or_showing_off": "The numeric id 135398928 and the grep-for-it aside; the full list of what the llvmpipe/EGL log lines mean; the cadatomic paragraph at the end of the Rust/Svelte section (it names kinds and states but teaches nothing runnable). Mild showing off in the mapping of every host-op counter, though most of it pays off.",
+    "machine_writing_tells": "Heavy use of 'Read it from the left', 'Predict, then run' repeated as a ritual, many parallel bolded-lead bullets, an em-dash-light but very even cadence, and exhaustive hedging statements ('wasn't tried for this page') stacked at the end of sections. The numbered 'what happened' lists read formulaic. The content is concrete enough (real output, real counts) that it does not read as filler.",
+    "too_long": "Yes, somewhat. At roughly 960 lines it is perhaps 25 to 30 percent longer than it needs to be: the black-window section and the failure-modes section could each be halved, and the spec-capability asides cut. But most of the length is spent on mechanism and evidence rather than restating, so the excess is smaller than the length suggests."
+  },
+  "Y": {
+    "most_insightful": "\"None of these tags are HTML. Each one names a skelter widget kind from the skelter semantic spec (metadata/semantics/skelter.json), and the compiler checks every tag, attribute and event against that spec.\" It is the only sentence that explains why a typo fails at compile time, and why the vocabulary is closed. The one-line note that the runner mounts the entry, then calls `present`, and only then opens the OS window, is the other useful model fragment.",
+    "attention_dropped": "The 'If it fails to start' bullet list: it is a reference list of error strings, a poor place to learn from, and most of it only applies when something goes wrong. The 'Where to go next' bullets are also pointers to files rather than ideas.",
+    "confusing": "Why the window is black: 'the default theme, not a rendering failure' is asserted, not explained, and later 'black with no text means GL fallback' sits uneasily beside it. 'When count changes, only the labels that read it receive a new text value' is stated but never shown, so I cannot tell how it decides. The claim that 'box draws nothing itself' sits next to a black window with no hint that nothing paints a background.",
+    "padding_or_showing_off": "Little. The kinds-you-might-reach-for list and the closing pointers are light filler. The 'if it fails to start' list is arguably padding for a tutorial but useful as reference.",
+    "machine_writing_tells": "Evenly formatted 'Three things to notice' bullets, 'Here is what happened' paragraphs, and a numbered 'Reading the host from top to bottom' recap that re-describes code line by line. Otherwise plain and restrained.",
+    "too_long": "No. It is about 320 lines and mostly spent on getting a working app. The cost is that it teaches little beyond the recipe: after reading I could reproduce the counter but could not say what crosses the Rust/JS boundary or why."
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "scale": "1 = full, 0.5 = half, 0 = wrong or page doesn't say (key's 2/1/0 mapped to 1/0.5/0); an answer labelled as a guess scores at most 0.5",
+  "questions": [
+    {"q": 1, "A": 0.5, "B": 0.5, "note": "Both: the svelters compiler compiles it live in the loader at startup (correct). Both say the page doesn't cover the bundle path and guess the compile is skipped, so the bundle contrast is a guess and caps the score at 0.5."},
+    {"q": 2, "A": 1, "B": 0, "note": "A: main thread, hit test and native press/clicked before JS, handler at the host checkpoint, microtask drain/flush after. Full. B: page doesn't say; guesses the UI thread and gives nothing about native defaults or the drain."},
+    {"q": 3, "A": 1, "B": 0.5, "note": "A: last-value dedupe, setProp on the label handles, Layout change class, re-record, commit to the compositor. Full. B: the label's text prop is set and the frame reaches the compositor, but no change class or dirty marking (says the page gives no more detail)."},
+    {"q": 4, "A": 1, "B": 0.5, "note": "A: detached tree built first, present, app handler opens the window from the title/size props, attached on first resize. Full. B: present, then the window opens and the node is attached, but misses that the tree is built before the window exists."},
+    {"q": 5, "A": 1, "B": 0.5, "note": "A: QuickJS running stock Svelte signals; Rust sees only host ops and events. Full. B: the JS/stock-Svelte part is right, but what Rust sees is labelled a guess."},
+    {"q": 6, "A": 1, "B": 0.5, "note": "A: fine-grained effects plus prop change classes marking dirty nodes. Full. B: page doesn't discuss it; gets the fine-grained half and guesses the dirty-tracking half."},
+    {"q": 7, "A": 1, "B": 0.5, "note": "A: the spec is generated from the Rust kinds, used for validation, and its capabilities (numeric ids, templates) shape the output. Full. B: validation only, no backend-specific output."},
+    {"q": 8, "A": 1, "B": 0.5, "note": "A: gives a reason from the page (cancelable events must be answered before the native default) and the cost (a long handler blocks the main thread; 10 s budget). It flags only the 'no separate thread' link as its own inference. Full. B: page doesn't say; a plausible guess (no cross-thread marshalling; slow JS freezes the UI), capped at 0.5."},
+    {"q": 9, "A": 0.5, "B": 0.5, "note": "Both name the three roles and why they need one store. Both say the page doesn't cover the no-text case and give only a vague guess (no or wrong sizes), so the zero-size NoText point is missing."},
+    {"q": 10, "A": 1, "B": 1, "note": "Both: two windows share count, the other window stays open, the process exits when the last window closes. A guesses the node is destroyed (bonus area). B says the page doesn't cover this exactly, but reasons from what the page states, not from a labelled guess."},
+    {"q": 11, "A": 0.5, "B": 1, "note": "A: predicts no change because the runner doesn't watch files, but says the page doesn't mention --dev and speculates (labelled a guess) that --dev might enable HMR, so it misses that --dev is not a watch flag. B: full, including what --dev actually does."},
+    {"q": 12, "A": 0.5, "B": 0.5, "note": "A: no setProp (runtime dedupe and the early return in Rust), correct; idle frames are labelled a guess (none). B: page doesn't say; both parts are reasoned from general Svelte knowledge and labelled guesses, capped at 0.5."},
+    {"q": 13, "A": 1, "B": 1, "note": "Both: input is not a kind in skelter's spec, so the compiler raises unknown_element during the live compile at startup, before any window. A also names text-edit (bonus)."},
+    {"q": 14, "A": 0.5, "B": 0.5, "note": "A: page doesn't mention it; best-guess fix is skelter_platform::run with SveltersApp. B: states the same fix confidently. Neither explains the inversion: the host doesn't own the loop, and run() looks for a Driver that isn't installed. Both get the fix without the reason, which is half."}
+  ],
+  "totals": {
+    "A": {"overall": 11.5, "max": 14, "mechanism_Q1_5": 4.5, "why_Q6_9": 3.5, "prediction_Q10_12": 2.0, "debugging_Q13_14": 1.5, "page_doesnt_say": 7, "page_doesnt_say_questions": [1, 8, 9, 10, 11, 12, 14], "misled": 0},
+    "B": {"overall": 8.0, "max": 14, "mechanism_Q1_5": 2.0, "why_Q6_9": 2.0, "prediction_Q10_12": 2.5, "debugging_Q13_14": 1.5, "page_doesnt_say": 8, "page_doesnt_say_questions": [1, 2, 5, 6, 8, 9, 10, 12], "misled": 0}
+  },
+  "counting_note": "page_doesnt_say counts each question where the reader said the page doesn't say, mention, discuss or cover something, in whole or in part. Answers that were almost entirely 'doesn't say' plus a guess: A Q14; B Q2, Q8, Q12. No answer was confidently wrong, so misled is 0 for both."
+}

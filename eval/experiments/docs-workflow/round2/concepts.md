@@ -1,0 +1,10 @@
+# Learning goals: sv-tutorial
+
+1. One Rust process does everything: winit's event loop and QuickJS share the main thread, and a separate compositor thread owns the GPU and draws whatever the UI thread last committed.
+2. Your `.svelte` files are compiled when the app starts, by the Rust compiler inside the module loader, against a spec (`skelter.json`) generated from the Rust kinds, which is why a wrong tag is a compile error with suggestions rather than a silent blank.
+3. Compiled Svelte code holds no DOM and no virtual DOM: it calls host ops (`create`, `insert`, `setProp`, `listen`; props go by name today) that create and edit nodes of a retained Rust tree, and each node's kind decides how that node lays out, paints, hit-tests and handles input; the tree answers only with events JS listens to and change notices for props JS observes.
+4. A click is hit-tested and handled natively first (hover, press, focus), then the kind's signal (`clicked`) is posted to JS only if something listens, and the handler runs before the input's handling ends.
+5. `$state` is fine-grained: a change re-runs only the effects that read it, unchanged values are dropped before they cross into Rust, and each prop write marks only the work of its change class (paint, layout, structure), so a frame re-records only the dirty nodes.
+6. Svelte decides what exists and what values props have; Rust kinds do the per-frame work (layout, paint, hit testing, direct manipulation), and an app extends the Rust side through kinds, `use:` behaviours and `:state()` names, as cadatomic does.
+7. The window is black because nothing paints it: `window` is still a placeholder kind, the compositor clears to transparent, and the default theme (Dark Modern) only supplies the colours that kinds and CSS rules use.
+8. When something goes wrong, you can tell which layer failed from where the message comes from, and they speak in startup order: the loader and compiler (`Load: …error[code]`) and JS (`[log]`, `[svelters] …`) while the app loads, then the platform (display, libraries), then the compositor (GPU), which says nothing unless the host installs a logger.

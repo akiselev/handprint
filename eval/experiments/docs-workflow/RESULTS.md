@@ -115,3 +115,42 @@ Reference v1: 897 human documentation pages (41 projects, pre-2022), calibrated 
 No task agent (DOCS 2c.14) and no question bank: the live runs answered specific disputes, not
 "can a fresh reader do this task". No human read the pages. The skelter how-to was never compiled.
 Judges were a different Claude model, not a different model family.
+
+## Round 2: the skelter tutorial, rewritten to teach (2026-10-27)
+
+The user's verdict on round 1: "These tutorials are awful. … They explain nothing, give no insight."
+Every stage of round 1 rewarded following steps and nothing rewarded understanding: the brief
+defined a tutorial as steps with results, the fact rule kept out explanations that have no line to
+cite, the writers' sources (code, tours) say what happens and never why, and the judges asked
+"which would you keep while doing the task". Round 2 (`round2/`) changed all four:
+
+- **Brief** (`round2/TEACH.md`): a tutorial leaves the reader with a model they can predict from;
+  open with the model, say why at every step, at least three experiments, the Rust book's
+  guessing-game chapter as the reference. Design docs may supply the *why*, checked against code.
+- **Verification by running**: every step, snippet and experiment run under Xvfb; all 12 code blocks
+  compiled; 15 issues fixed from observed output (the compiler-output experiment described stable
+  numeric prop ids that a svelters bug keeps switched off for skelter).
+- **Held-out comprehension test**: 14 questions (mechanism, why, prediction, debugging) written from
+  the code by an agent that never saw a draft; a reader answered from one page only; a grader scored
+  both readers blind.
+- **Judges asked "which left you understanding better"**, both orders.
+
+| | round 1 page | round 2 page |
+|---|---|---|
+| comprehension score (of 14) | 8 | **11.5** |
+| — mechanism (of 5) / why (of 4) | 2 / 2 | **4.5 / 3.5** |
+| judges: understood better | 0 | **2 of 2, both clear** |
+| judges: would rather work through | 1 (slight) | 1 (slight) |
+| explaining sentences per 100 (`tools/explain.py`) | 4.5 | **10.8** (Rust book ch. 2: 9.0) |
+| instructing sentences per 100 | 11.2 | 6.5 |
+| words | ~2,000 | ~4,950 after a trim from 6,600 |
+
+Both judges called round 2 somewhat too long and named the same padding (a prop-id digression, a
+templates aside, the logger section, three revert steps); one pass cut exactly those, re-ran the
+moved steps, and changed no output. handprint was used as a report only: its loudest finding on
+the teaching draft was "synthetic negation", which in a tutorial is the "there is no X; instead Y"
+contrast that does the teaching.
+
+Bugs the run found in svelters (for the coordinator): `skelter.json` nests `spec_hash` under
+`"ids"` where the compiler reads it from the top level, so stable prop ids never switch on for
+skelter; the button's hover fill doesn't repaint on pointer moves alone.

@@ -1,0 +1,20 @@
+{
+  "understanding": {"keep": "Y", "margin": "clear", "reason": "Y gives a mental model (retained tree, kinds, host ops, change classes, who owns what) and has me predict-then-check, so I could guess what a slider drag, a hover, or a missing GPU would do; X only shows a working recipe."},
+  "with_code_open": {"keep": "Y", "margin": "slight", "reason": "Y's break-it, read-the-output and count-the-crossings experiments teach by doing and are checkable against printed output; X is leaner and quicker to get running, but nothing in it makes me poke at the system."},
+  "X": {
+    "most_insightful": "\"`onclicked` listens to the button's native `clicked` signal ... If you write a signal the element does not have, the compiler stops with `unknown_event`.\" Together with the note that tags are checked against metadata/semantics/skelter.json, this is X's one real model-building moment.",
+    "attention_dropped": "The 'If it fails to start' list of five error strings, and the Step 5 numbered walk-through of host setup. Both read as reference tables and neither explains why anything works.",
+    "confusing": "'Mounting the component created a window node and called its present method. After that call returned, the runner asked the platform for a window' is stated without saying why order matters or what the Document is. Step 5 introduces FontStore, SkelterBackend, Embed, SourceProvider and Span with one line each and no picture of how they relate. The black window is declared 'the default theme' (a wrong or at least shallow explanation) with no cause. The 'Where to go next' bullet about slots is cryptic.",
+    "padding_or_showing_off": "Little. The 256-character truncation paragraph is a quirk, not teaching. Mostly honest and compact.",
+    "machine_writing_tells": "Heavy colon-introduced bullet stacks, 'Three things to notice', bolded lead-ins, and uniformly short declarative sentences. Mild; it reads like a careful README.",
+    "too_long": "No. It is about right for a get-it-running page, but it stops short of the second goal: after it I can reproduce the app, not reason about it."
+  },
+  "Y": {
+    "most_insightful": "The click path (hit test, native default in Rust, only listened signals become events, delivery at a host checkpoint, microtask drain) plus the change classes property/paint/layout/structure, and then the Traffic counters showing five hovers posting no events and writing no props. It turns an architecture claim into a number the reader predicts and then checks.",
+    "attention_dropped": "The long compiled-output walkthrough ($$T0 table, $n.at, template_listen) and the logger and VK_ICD_FILENAMES section near the end; the template-optimisation and numeric-id asides in particular describe things that are not switched on.",
+    "confusing": "The tree-dump helper uses internal APIs (with_doc, kind_of, registry().get, text_prop) with no explanation, so it is copy-paste only. Three 'put it back' restorations in a row are easy to botch. The hover bug aside is honest but muddies the 'hover is Rust's business' point. The 'handle 135398928' prop-id digression is trivia.",
+    "padding_or_showing_off": "The wgpu EGL/winit warning log and the numeric-id and templates 'less than the spec allows' details are detail for its own sake. The cadatomic paragraph near the end is a small flourish, though it does answer 'where does this go next'.",
+    "machine_writing_tells": "Frequent 'Predict ... then run' scaffolding, 'Read it from the left', 'That is the point', tidy triads, and the rhetorical 'The first is ... The second is ...'. Present but in service of content. Very exact numbers (366 packages, 109 checkpoints) read as lab notes, which helps credibility.",
+    "too_long": "Somewhat yes: about three times X, and the last third (black window, logging) could be separate pages. But nearly every section adds a prediction I could not make from X, so the length mostly buys understanding rather than filler."
+  }
+}

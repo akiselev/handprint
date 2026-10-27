@@ -1,0 +1,27 @@
+1. The svelters-host module loader compiles `.svelte` files with the svelters compiler, inside the Rust process, at app start, as each file is imported. The runner's source provider generates a small entry module (`mount(App, ...)`), compiles `App.svelte` for skelter and evaluates it in QuickJS. The page doesn't say what changes with a bundle built ahead of time. Guess: the compile step is skipped and the precompiled JS is loaded directly.
+
+2. The page doesn't say in any detail. It shows that `onclicked` listens to the button's native `clicked` signal, and that the platform event loop runs on the main thread with `SveltersApp` as handler. Guess: the handler runs on that main/UI thread, inside the embedded QuickJS. The page says that after a state change skelter lays out and draws the next frame. It doesn't describe anything done before the JS runs.
+
+3. When `count` changes, only the labels that read it get a new `text` property value. Skelter then lays out and draws the next frame, and the GPU compositor rasterises it. The page implies other nodes are not touched, but it gives no more detail. Strictly, "Doubled" reads `doubled`, which derives from `count`, so it presumably updates too (a guess).
+
+4. Mounting the component creates a `window` node and calls its `present` method. After that returns, the runner asks the platform for a window with the node's title and size and attaches the node as the window's root. Its `SveltersApp` handler opens a window for each `<window>` presented. The children (labels, button) are laid out as a flex column and drawn by the compositor.
+
+5. They run in JavaScript, in the embedded QuickJS engine, on stock Svelte 5.57.2's own reactivity (loaded from `node_modules` by the runtime). Rust does not implement the runes. The page doesn't say exactly what Rust sees. Guess: only the resulting widget creations and property updates, such as a new `text` value, that arrive through the svelters-skelter backend.
+
+6. The page doesn't discuss virtual DOM. From what it does say, the compiled Svelte code updates specific skelter widgets directly when the state they read changes ("only the labels that read it receive a new `text` value"). Skelter is a retained widget tree, and it then lays out and draws. Guess: skelter uses the retained tree and dirty-tracking of changed properties to decide what to re-layout and redraw.
+
+7. The compiler checks every tag, attribute and event against a backend's semantic spec (for skelter, `metadata/semantics/skelter.json`). So the backend decides which elements are valid, such as `window`, `box`, `label` and `button`, and which signals exist, such as `clicked`. An unknown element like `<push-button>` fails with `unknown_element`. That is also why the host sets `cfg.backend = "skelter"` whatever the `toolkit` field says.
+
+8. The page doesn't say this. Guess: the JS engine is embedded in the same process and the event loop runs on the main thread, so dispatching the click calls the handler directly, which keeps ordering simple and avoids cross-thread marshalling. The price would be that slow JS blocks the UI and freezes the window.
+
+9. The page names three jobs for the one `FontStore`. The widget tree uses it for measuring, the widget kinds for shaping, and the GPU compositor for rasterising. They must share one store so that all three agree on the same fonts and glyphs. Otherwise measured sizes and shaped text might not match what is drawn. Without a text system the page doesn't say what happens. Guess: no text, or wrongly sized text, would be drawn.
+
+10. The page doesn't cover this exactly. It says the handler opens a window for each `<window>` presented and exits when the last one closes. So I expect two windows to open at start. Closing one should leave the other open and the process running, and `count` should live on in the component. The process ends only when the last window is closed, with status 0.
+
+11. Nothing happens in the running app. The runner does not watch your files, so every edit needs a restart, and each start compiles again. The `--dev` flag only turns on Svelte's `dev` compile option and the `development` export condition for extra checks. It doesn't enable hot reload. You must close and relaunch to see the new text.
+
+12. The page doesn't say. From general Svelte knowledge, going from 3 to 4 leaves `size` as 'few', and Svelte 5 deriveds skip updates when the value is equal. So I'd expect the `size` label to cause no text update and no call across into Rust, and nothing to change in skelter's tree for it. Only the labels that read `count` would update. For frames, the page doesn't say. Guess: none while idle, since a frame is drawn after a change.
+
+13. `<input>` is an HTML tag, not a skelter widget kind, so the compiler rejects it as an `unknown_element` error with a help suggestion of near matches. This is caught at compile time. The module loader compiles `App.svelte` when the app loads at startup, before any window is created. That is why the process exits with status 1 and no window appears.
+
+14. The structure is missing the platform and compositor setup. The page's host does not call a host `run()`. It builds the compositor spawn with `skelter::compositor(...)` and then calls `skelter_platform::run(Box::new(SveltersApp::new(embed, spawn)))` on the main thread. That call runs the event loop and opens a window per presented `<window>`. The binary should do that instead.
